@@ -1,0 +1,64 @@
+{
+  "entities": {
+    "Product": {
+      "title": "Product",
+      "description": "A boutique fashion garment or accessory sold by Rehaan Clothing",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "The name of the garment" },
+        "slug": { "type": "string", "description": "URL slug" },
+        "brand": { "type": "string", "description": "Brand name" },
+        "category": { "type": "string", "description": "Primary category" },
+        "subcategory": { "type": "string", "description": "Subcategory" },
+        "description": { "type": "string", "description": "Full garment details" },
+        "price": { "type": "number", "description": "Regular price in INR" },
+        "salePrice": { "type": "number", "description": "Discounted price in INR" },
+        "images": { "type": "array", "description": "Image gallery URLs" },
+        "sizes": { "type": "array", "description": "Available garment sizes" },
+        "fabric": { "type": "string", "description": "Fabric type" },
+        "status": { "type": "string", "description": "Stock status" }
+      },
+      "required": ["name", "slug", "category", "price"]
+    },
+    "Category": {
+      "title": "Category",
+      "description": "A fashion product category in the store",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Name of the category" },
+        "slug": { "type": "string", "description": "Slug of the category" },
+        "description": { "type": "string", "description": "Description of the collection" },
+        "image": { "type": "string", "description": "Cover banner image URL" },
+        "active": { "type": "boolean", "description": "Whether the category is active" },
+        "displayOrder": { "type": "number", "description": "Display sort order" }
+      },
+      "required": ["name", "slug"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Customer purchase transaction record",
+      "type": "object",
+      "properties": {
+        "orderNumber": { "type": "string" },
+        "customerEmail": { "type": "string" },
+        "total": { "type": "number" },
+        "status": { "type": "string" }
+      },
+      "required": ["orderNumber", "customerEmail", "total", "status"]
+    }
+  },
+  "firestore": {
+    "/products/{productId}": {
+      "schema": "Product",
+      "description": "Storefront catalog items"
+    },
+    "/categories/{categoryId}": {
+      "schema": "Category",
+      "description": "Storefront clothing categories"
+    },
+    "/orders/{orderId}": {
+      "schema": "Order",
+      "description": "Customer purchase orders"
+    }
+  }
+}
