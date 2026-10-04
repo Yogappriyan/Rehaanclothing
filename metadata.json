@@ -1,6 +1,6 @@
 {
-  "name": "Rehaan Clothing",
-  "description": "Shop women's clothing from Rehaan Clothing in Trichy. Discover dresses, kurtis, ethnic wear, western styles and new fashion collections.",
+  "name": "House Of Rehaan",
+  "description": "Shop women's clothing from House Of Rehaan in Trichy. Discover dresses, kurtis, ethnic wear, western styles and new fashion collections.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

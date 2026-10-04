@@ -2,7 +2,7 @@
   "entities": {
     "Product": {
       "title": "Product",
-      "description": "A boutique fashion garment or accessory sold by Rehaan Clothing",
+      "description": "A boutique fashion garment or accessory sold by House Of Rehaan",
       "type": "object",
       "properties": {
         "name": { "type": "string", "description": "The name of the garment" },
@@ -45,6 +45,20 @@
         "status": { "type": "string" }
       },
       "required": ["orderNumber", "customerEmail", "total", "status"]
+    },
+    "Coupon": {
+      "title": "Coupon",
+      "description": "Promotional discount voucher and coupon",
+      "type": "object",
+      "properties": {
+        "code": { "type": "string", "description": "Uppercase coupon code" },
+        "discountType": { "type": "string", "description": "percentage or fixed" },
+        "discountValue": { "type": "number", "description": "Discount rate or amount" },
+        "minimumOrder": { "type": "number", "description": "Minimum purchase required" },
+        "maximumDiscount": { "type": "number", "description": "Max discount amount cap" },
+        "active": { "type": "boolean", "description": "Whether coupon is active" }
+      },
+      "required": ["code", "discountType", "discountValue", "active"]
     }
   },
   "firestore": {
@@ -59,6 +73,10 @@
     "/orders/{orderId}": {
       "schema": "Order",
       "description": "Customer purchase orders"
+    },
+    "/coupons/{couponId}": {
+      "schema": "Coupon",
+      "description": "Promotional discount coupons"
     }
   }
 }

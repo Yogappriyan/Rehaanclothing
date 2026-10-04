@@ -19,12 +19,12 @@ interface CartContextType {
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
-const CART_STORAGE_KEY = 'rehaanClothing_cart';
+const CART_STORAGE_KEY = 'houseOfRehaan_cart';
 
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [items, setItems] = useState<OrderItem[]>(() => {
     try {
-      const saved = localStorage.getItem(CART_STORAGE_KEY);
+      const saved = localStorage.getItem(CART_STORAGE_KEY) || localStorage.getItem('rehaanClothing_cart');
       return saved ? JSON.parse(saved) : [];
     } catch {
       return [];
@@ -108,7 +108,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const deliveryFee = subtotal > 0 && subtotal < 1999 ? 99 : 0;
 
   let discountAmount = 0;
-  if (appliedCoupon && subtotal >= appliedCoupon.minimumOrder) {
+  if (appliedCoupon && subtotal >= (appliedCoupon.minimumOrder || 0)) {
     if (appliedCoupon.discountType === 'percentage') {
       discountAmount = Math.round((subtotal * appliedCoupon.discountValue) / 100);
       if (appliedCoupon.maximumDiscount && discountAmount > appliedCoupon.maximumDiscount) {
@@ -118,6 +118,9 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       discountAmount = appliedCoupon.discountValue;
     }
   }
+
+  // Ensure discount does not exceed subtotal
+  discountAmount = Math.min(discountAmount, subtotal);
 
   const total = Math.max(0, subtotal - discountAmount + deliveryFee);
 

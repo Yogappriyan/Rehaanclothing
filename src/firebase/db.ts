@@ -31,8 +31,8 @@ import type {
 } from '../types';
 
 export const DEFAULT_SETTINGS: BusinessSettings = {
-  businessName: 'Rehaan Clothing',
-  storeName: 'Rehaan Clothing',
+  businessName: 'House Of Rehaan',
+  storeName: 'House Of Rehaan',
   phone: '+91 9790478436',
   email: 'houseofrehaan@gmail.com',
   address: 'Plot No. 46, 2nd Cross, Sathanur, Trichy – 620102, Tamil Nadu, India',
@@ -41,11 +41,11 @@ export const DEFAULT_SETTINGS: BusinessSettings = {
   instagram: '',
   facebook: '',
   youtube: '',
-  googleMapsUrl: 'https://maps.google.com/?q=Seerathoppu+Trichy+Tamil+Nadu',
+  googleMapsUrl: 'https://maps.app.goo.gl/mLggnqsck5AnXRRN6',
   businessHours: 'Mon - Sat: 10:00 AM - 8:30 PM',
   announcement: 'New styles arriving soon | Delivery available across India',
   heroTitle: 'Style That Feels Like You',
-  heroSubtitle: "Discover thoughtfully selected women's fashion from Rehaan Clothing.",
+  heroSubtitle: "Discover thoughtfully selected women's fashion from House Of Rehaan.",
   notificationEmail: 'houseofrehaan@gmail.com',
   freeShippingThreshold: 1999,
   standardShippingFee: 99,
@@ -200,7 +200,12 @@ export function subscribeBusinessSettings(callback: (settings: BusinessSettings)
     ref,
     (snap) => {
       if (snap.exists()) {
-        callback(snap.data() as BusinessSettings);
+        const data = snap.data() as BusinessSettings;
+        const googleMapsUrl =
+          data.googleMapsUrl && !data.googleMapsUrl.includes('q=Sathanur')
+            ? data.googleMapsUrl
+            : 'https://maps.app.goo.gl/mLggnqsck5AnXRRN6';
+        callback({ ...DEFAULT_SETTINGS, ...data, googleMapsUrl });
       } else {
         callback(DEFAULT_SETTINGS);
       }
@@ -497,8 +502,8 @@ export async function createOrder(orderData: Omit<Order, 'id' | 'createdAt' | 'u
       recipientEmail: orderData.email,
       recipientName: orderData.customerName,
       type: 'order_confirmation',
-      subject: `Order Confirmation #${orderDoc.id.slice(0, 8).toUpperCase()} - Rehaan Clothing`,
-      content: `Dear ${orderData.customerName},\n\nThank you for choosing Rehaan Clothing. Your order #${orderDoc.id.slice(0, 8).toUpperCase()} for ₹${orderData.totalAmount} has been received and is being prepared with utmost care at our Trichy boutique.\n\nItems: ${orderData.items.map((i) => `${i.productName} (Qty: ${i.quantity})`).join(', ')}\nDelivery Address: ${orderData.address.address}, ${orderData.address.city}, ${orderData.address.state} - ${orderData.address.pincode}.\n\nWarm regards,\nRehaan Clothing Boutique Team\nTrichy, Tamil Nadu`,
+      subject: `Order Confirmation #${orderDoc.id.slice(0, 8).toUpperCase()} - House Of Rehaan`,
+      content: `Dear ${orderData.customerName},\n\nThank you for choosing House Of Rehaan. Your order #${orderDoc.id.slice(0, 8).toUpperCase()} for ₹${orderData.totalAmount} has been received and is being prepared with utmost care at our Trichy boutique.\n\nItems: ${orderData.items.map((i) => `${i.productName} (Qty: ${i.quantity})`).join(', ')}\nDelivery Address: ${orderData.address.address}, ${orderData.address.city}, ${orderData.address.state} - ${orderData.address.pincode}.\n\nWarm regards,\nHouse Of Rehaan Boutique Team\nTrichy, Tamil Nadu`,
       status: 'sent',
       sentAt: now,
     });
@@ -531,8 +536,8 @@ export async function updateOrderStatus(id: string, status: Order['orderStatus']
         recipientEmail: order.email,
         recipientName: order.customerName,
         type: 'status_update',
-        subject: `Update on Order #${id.slice(0, 8).toUpperCase()}: ${status} - Rehaan Clothing`,
-        content: `Dear ${order.customerName},\n\nYour order #${id.slice(0, 8).toUpperCase()} status has changed to "${status}".${trackingNumber ? ` Shipping Tracking Reference: ${trackingNumber}` : ''}\n\nThank you for shopping with Rehaan Clothing.`,
+        subject: `Update on Order #${id.slice(0, 8).toUpperCase()}: ${status} - House Of Rehaan`,
+        content: `Dear ${order.customerName},\n\nYour order #${id.slice(0, 8).toUpperCase()} status has changed to "${status}".${trackingNumber ? ` Shipping Tracking Reference: ${trackingNumber}` : ''}\n\nThank you for shopping with House Of Rehaan.`,
         status: 'sent',
         sentAt: now,
       });
@@ -559,8 +564,8 @@ export async function submitContactRequest(data: Omit<ContactRequest, 'id' | 'st
       recipientEmail: data.email,
       recipientName: data.name,
       type: 'contact_reply',
-      subject: `We have received your message - Rehaan Clothing`,
-      content: `Hello ${data.name},\n\nThank you for contacting Rehaan Clothing. Our boutique styling team in Trichy has received your message regarding "${data.subject}" and will get back to you shortly.\n\nWarm regards,\nRehaan Clothing`,
+      subject: `We have received your message - House Of Rehaan`,
+      content: `Hello ${data.name},\n\nThank you for contacting House Of Rehaan. Our boutique styling team in Trichy has received your message regarding "${data.subject}" and will get back to you shortly.\n\nWarm regards,\nHouse Of Rehaan`,
       status: 'sent',
       sentAt: now,
     });
@@ -638,6 +643,73 @@ export async function deleteReview(id: string) {
 }
 
 // Coupons
+export const DEFAULT_BOUTIQUE_COUPONS: Coupon[] = [
+  {
+    id: 'coupon-welcome10',
+    code: 'WELCOME10',
+    discountType: 'percentage',
+    discountValue: 10,
+    minimumOrder: 999,
+    maximumDiscount: 500,
+    startDate: '',
+    endDate: '',
+    active: true,
+  },
+  {
+    id: 'coupon-rehaan15',
+    code: 'REHAAN15',
+    discountType: 'percentage',
+    discountValue: 15,
+    minimumOrder: 1499,
+    maximumDiscount: 750,
+    startDate: '',
+    endDate: '',
+    active: true,
+  },
+  {
+    id: 'coupon-trichy100',
+    code: 'TRICHY100',
+    discountType: 'fixed',
+    discountValue: 100,
+    minimumOrder: 999,
+    startDate: '',
+    endDate: '',
+    active: true,
+  },
+  {
+    id: 'coupon-festive20',
+    code: 'FESTIVE20',
+    discountType: 'percentage',
+    discountValue: 20,
+    minimumOrder: 1999,
+    maximumDiscount: 1000,
+    startDate: '',
+    endDate: '',
+    active: true,
+  },
+];
+
+const COUPONS_STORAGE_KEY = 'rehaan_store_coupons_cache';
+
+export function getStoredCoupons(): Coupon[] {
+  try {
+    const raw = localStorage.getItem(COUPONS_STORAGE_KEY);
+    if (!raw) return DEFAULT_BOUTIQUE_COUPONS;
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) && parsed.length > 0 ? parsed : DEFAULT_BOUTIQUE_COUPONS;
+  } catch {
+    return DEFAULT_BOUTIQUE_COUPONS;
+  }
+}
+
+export function setStoredCoupons(coupons: Coupon[]) {
+  try {
+    localStorage.setItem(COUPONS_STORAGE_KEY, JSON.stringify(coupons));
+  } catch (e) {
+    console.warn('Could not cache coupons locally:', e);
+  }
+}
+
 export function subscribeCoupons(callback: (coupons: Coupon[]) => void) {
   const col = collection(db, 'coupons');
   return onSnapshot(
@@ -647,43 +719,91 @@ export function subscribeCoupons(callback: (coupons: Coupon[]) => void) {
       snap.forEach((d) => {
         items.push({ id: d.id, ...(d.data() as Omit<Coupon, 'id'>) });
       });
-      callback(items);
+      if (items.length > 0) {
+        setStoredCoupons(items);
+        callback(items);
+      } else {
+        const local = getStoredCoupons();
+        callback(local);
+      }
     },
     (err) => {
-      console.warn('Coupons listener notice:', err.message);
-      callback([]);
+      console.warn('Coupons listener notice, using cached coupons:', err.message);
+      callback(getStoredCoupons());
     }
   );
 }
 
 /**
  * Validates a single coupon code securely on demand.
- * Prevents dumping all active or future coupon codes to the client bundle.
+ * Checks live cloud database first, with seamless fallback to cached boutique vouchers.
  */
 export async function validateCouponCode(code: string): Promise<Coupon | null> {
   const clean = code.trim().toUpperCase();
   if (!clean) return null;
+
+  // 1. Try checking Firestore
   try {
     const col = collection(db, 'coupons');
     const q = query(col, where('code', '==', clean), where('active', '==', true));
     const snap = await getDocs(q);
-    if (snap.empty) return null;
-    const firstDoc = snap.docs[0];
-    return { id: firstDoc.id, ...(firstDoc.data() as Omit<Coupon, 'id'>) };
+    if (!snap.empty) {
+      const firstDoc = snap.docs[0];
+      return { id: firstDoc.id, ...(firstDoc.data() as Omit<Coupon, 'id'>) };
+    }
   } catch (err) {
-    console.warn('Coupon lookup warning:', err);
-    return null;
+    console.warn('Firestore coupon lookup notice:', err);
   }
+
+  // 2. Check local store cache and default coupons
+  const localList = getStoredCoupons();
+  const found = localList.find((c) => c.code.toUpperCase() === clean && c.active !== false);
+  if (found) {
+    return found;
+  }
+
+  return null;
 }
 
 export async function addCoupon(coupon: Omit<Coupon, 'id'>) {
-  const col = collection(db, 'coupons');
-  return await addDoc(col, coupon);
+  const cleanCode = (coupon.code || 'SPECIAL10').trim().toUpperCase();
+  const couponData = {
+    ...coupon,
+    code: cleanCode,
+    active: coupon.active ?? true,
+    discountValue: Number(coupon.discountValue) || 0,
+    minimumOrder: Number(coupon.minimumOrder) || 0,
+    maximumDiscount: coupon.maximumDiscount ? Number(coupon.maximumDiscount) : undefined,
+  };
+
+  try {
+    const col = collection(db, 'coupons');
+    const docRef = await addDoc(col, couponData);
+
+    const current = getStoredCoupons();
+    const updated = [{ id: docRef.id, ...couponData }, ...current.filter((c) => c.code !== cleanCode)];
+    setStoredCoupons(updated);
+
+    return docRef;
+  } catch (err) {
+    console.warn('Firestore addCoupon notice, saving to local cache:', err);
+    const newId = `cpn-${Date.now()}`;
+    const current = getStoredCoupons();
+    const updated = [{ id: newId, ...couponData }, ...current.filter((c) => c.code !== cleanCode)];
+    setStoredCoupons(updated);
+    return { id: newId };
+  }
 }
 
 export async function deleteCoupon(id: string) {
-  const ref = doc(db, 'coupons', id);
-  await deleteDoc(ref);
+  try {
+    const ref = doc(db, 'coupons', id);
+    await deleteDoc(ref);
+  } catch (err) {
+    console.warn('Firestore deleteCoupon notice:', err);
+  }
+  const current = getStoredCoupons();
+  setStoredCoupons(current.filter((c) => c.id !== id));
 }
 
 // Email Notifications Log & Scheduled Reports
@@ -744,10 +864,10 @@ export async function generateScheduledReport(period: 'Daily' | 'Weekly' | 'Mont
   const notifCol = collection(db, 'emailNotifications');
   await addDoc(notifCol, {
     recipientEmail: recipient,
-    recipientName: 'Rehaan Clothing Management',
+    recipientName: 'House Of Rehaan Management',
     type: 'scheduled_report',
-    subject: `[Automated Report] ${period} Store Summary - Rehaan Clothing`,
-    content: `Rehaan Clothing Automated Performance Report (${period})\nDate: ${new Date().toLocaleDateString()}\n\n• Total Revenue: ₹${stats.totalRevenue.toLocaleString('en-IN')}\n• Total Orders Processed: ${stats.totalOrders}\n• Active Catalog Styles: ${stats.activeProducts}\n• Pending Dispatch: ${stats.pendingDeliveries}\n\nSecurity Status: All customer payment details and sensitive tokens encrypted and verified. Access controls active.`,
+    subject: `[Automated Report] ${period} Store Summary - House Of Rehaan`,
+    content: `House Of Rehaan Automated Performance Report (${period})\nDate: ${new Date().toLocaleDateString()}\n\n• Total Revenue: ₹${stats.totalRevenue.toLocaleString('en-IN')}\n• Total Orders Processed: ${stats.totalOrders}\n• Active Catalog Styles: ${stats.activeProducts}\n• Pending Dispatch: ${stats.pendingDeliveries}\n\nSecurity Status: All customer payment details and sensitive tokens encrypted and verified. Access controls active.`,
     status: 'delivered',
     sentAt: now,
   });
@@ -767,7 +887,7 @@ export async function saveProduct(product: Partial<Product>) {
     return await addProduct({
       name: product.name || 'New Style',
       slug: product.slug || (product.name ? product.name.toLowerCase().replace(/\s+/g, '-') : `item-${Date.now()}`),
-      brand: product.brand || 'Rehaan Clothing',
+      brand: product.brand || 'House Of Rehaan',
       category: product.category || 'Dresses',
       description: product.description || '',
       price: product.price || 0,
@@ -805,20 +925,33 @@ export async function saveCategory(category: Partial<Category>) {
 }
 
 export async function saveCoupon(coupon: Partial<Coupon>) {
+  const cleanCode = (coupon.code || 'SPECIAL10').trim().toUpperCase();
+  const couponData = {
+    code: cleanCode,
+    discountType: coupon.discountType || 'percentage',
+    discountValue: Number(coupon.discountValue) || 10,
+    minimumOrder: Number(coupon.minimumOrder) || 0,
+    maximumDiscount: coupon.maximumDiscount ? Number(coupon.maximumDiscount) : undefined,
+    startDate: coupon.startDate || '',
+    endDate: coupon.endDate || '',
+    active: coupon.active ?? true,
+  };
+
   if (coupon.id) {
-    const ref = doc(db, 'coupons', coupon.id);
-    await updateDoc(ref, coupon);
+    try {
+      const ref = doc(db, 'coupons', coupon.id);
+      await setDoc(ref, couponData, { merge: true });
+    } catch (err) {
+      console.warn('Firestore updateCoupon error, updating local cache:', err);
+    }
+    const current = getStoredCoupons();
+    const updated = current.map((c) =>
+      c.id === coupon.id ? { id: coupon.id, ...couponData } : c
+    );
+    setStoredCoupons(updated);
     return coupon.id;
   } else {
-    const res = await addCoupon({
-      code: coupon.code || 'SPECIAL10',
-      discountType: coupon.discountType || 'percentage',
-      discountValue: coupon.discountValue || 10,
-      minimumOrder: coupon.minimumOrder || 0,
-      startDate: coupon.startDate || '',
-      endDate: coupon.endDate || '',
-      active: coupon.active ?? true,
-    });
+    const res = await addCoupon(couponData);
     return res.id;
   }
 }

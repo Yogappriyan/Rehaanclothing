@@ -145,7 +145,7 @@ export const Shop: React.FC<ShopProps> = ({
       {/* Top Header */}
       <div className="border-b border-[#E9DFD0] pb-8 mb-8">
         <span className="text-xs uppercase tracking-widest text-[#9A8568] font-semibold">
-          Rehaan Boutique
+          House Of Rehaan
         </span>
         <h1 className="font-editorial text-3xl sm:text-4xl text-[#292522] mt-1 font-normal">
           Shop Women's Collection
@@ -342,7 +342,7 @@ export const Shop: React.FC<ShopProps> = ({
                 No products available matching your criteria.
               </h3>
               <p className="text-xs text-[#766F68] max-w-sm mx-auto">
-                Try clearing some filters or exploring another category from Rehaan Clothing.
+                Try clearing some filters or exploring another category from House Of Rehaan.
               </p>
               <button
                 onClick={clearAllFilters}

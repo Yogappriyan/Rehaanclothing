@@ -50,7 +50,7 @@ export const Contact: React.FC<ContactProps> = ({ settings }) => {
           Get in Touch
         </span>
         <h1 className="font-editorial text-4xl sm:text-5xl text-[#292522] font-normal">
-          Contact Rehaan Clothing
+          Contact House Of Rehaan
         </h1>
         <p className="text-sm text-[#766F68] max-w-md mx-auto leading-relaxed">
           Have a question about fabric, custom sizing, order dispatch, or styling recommendations? We'd
@@ -75,11 +75,17 @@ export const Contact: React.FC<ContactProps> = ({ settings }) => {
               </div>
               <div>
                 <strong className="text-[#292522] block font-semibold">Studio & Boutique:</strong>
-                <p className="text-[#766F68] mt-0.5 leading-relaxed">
+                <a
+                  href={settings.googleMapsUrl || 'https://maps.app.goo.gl/mLggnqsck5AnXRRN6'}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[#766F68] hover:text-[#292522] hover:underline mt-0.5 leading-relaxed block"
+                  title="View on Google Maps"
+                >
                   Plot No. 46, 2nd Cross,<br />
-                  Sathanur,<br />
-                  Trichy – 620102, Tamil Nadu, India
-                </p>
+                  Kailash Nagar, Kattur,<br />
+                  Trichy – 620019, Tamil Nadu, India
+                </a>
               </div>
             </div>
 
@@ -115,7 +121,7 @@ export const Contact: React.FC<ContactProps> = ({ settings }) => {
                   href="mailto:animeflicks2310@gmail.com"
                   className="text-[#766F68] hover:text-[#9A8568] block"
                 >
-                  
+                  animeflicks2310@gmail.com
                 </a>
               </div>
             </div>
@@ -125,7 +131,7 @@ export const Contact: React.FC<ContactProps> = ({ settings }) => {
           <div className="pt-4 border-t border-[#E9DFD0]">
             <a
               href={`https://wa.me/919790478436?text=${encodeURIComponent(
-                'Hello Rehaan Clothing, I have an inquiry regarding your collection.'
+                'Hello House Of Rehaan, I have an inquiry regarding your collection.'
               )}`}
               target="_blank"
               rel="noopener noreferrer"
@@ -139,12 +145,12 @@ export const Contact: React.FC<ContactProps> = ({ settings }) => {
           {/* Map Link */}
           <div className="pt-2 text-center">
             <a
-              href="https://maps.google.com/?q=Seerathoppu+Trichy+Tamil+Nadu+India"
+              href={settings.googleMapsUrl || 'https://maps.app.goo.gl/mLggnqsck5AnXRRN6'}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-xs text-[#9A8568] hover:underline font-medium"
+              className="text-xs text-[#9A8568] hover:text-[#292522] hover:underline font-semibold inline-flex items-center gap-1"
             >
-              Open Trichy Boutique on Google Maps →
+              <span>Get Directions on Google Maps →</span>
             </a>
           </div>
         </div>
@@ -161,7 +167,7 @@ export const Contact: React.FC<ContactProps> = ({ settings }) => {
               <CheckCircle2 className="w-10 h-10 text-emerald-700 mx-auto" />
               <h4 className="font-editorial text-xl text-emerald-900">Message Received</h4>
               <p className="text-xs text-emerald-800 max-w-sm mx-auto">
-                Thank you for reaching out to Rehaan Clothing. Our team has received your message and will
+                Thank you for reaching out to House Of Rehaan. Our team has received your message and will
                 get in touch shortly.
               </p>
               <button

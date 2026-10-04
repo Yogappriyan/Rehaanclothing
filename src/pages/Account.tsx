@@ -28,7 +28,7 @@ export const Account: React.FC<AccountProps> = ({ onNavigate }) => {
         <span className="text-xs uppercase tracking-widest text-[#9A8568] font-semibold">
           Customer Portal
         </span>
-        <h1 className="font-editorial text-3xl text-[#292522]">Sign In to Rehaan Clothing</h1>
+        <h1 className="font-editorial text-3xl text-[#292522]">Sign In to House Of Rehaan</h1>
         <p className="text-xs text-[#766F68] leading-relaxed">
           Sign in securely with Google to view your order history, save addresses, sync your wishlist across
           devices, and track deliveries.

@@ -210,7 +210,7 @@ export const Home: React.FC<HomeProps> = ({
         {newArrivals.length === 0 ? (
           <div className="p-12 text-center text-[#766F68] bg-[#F6F1EA] rounded-md">
             <p className="font-editorial text-lg text-[#292522]">
-              New styles arriving soon at Rehaan Clothing.
+              New styles arriving soon at House Of Rehaan.
             </p>
             <p className="text-xs mt-1">Check back shortly for our latest pieces.</p>
           </div>
@@ -228,7 +228,7 @@ export const Home: React.FC<HomeProps> = ({
         )}
       </section>
 
-      {/* 5. THE REHAAN EDIT - EDITORIAL LOOKBOOK SECTION */}
+      {/* 5. THE HOUSE OF REHAAN EDIT - EDITORIAL LOOKBOOK SECTION */}
       <section id="lookbook-section" className="bg-[#F6F1EA] py-16 sm:py-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
@@ -236,7 +236,7 @@ export const Home: React.FC<HomeProps> = ({
             <div className="lg:col-span-7 relative overflow-hidden rounded-md shadow-md aspect-4/3 bg-[#E9DFD0]">
               <img
                 src="/lookbook-banner.jpg"
-                alt="The Rehaan Edit"
+                alt="The House Of Rehaan Edit"
                 className="w-full h-full object-cover object-center"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
@@ -248,7 +248,7 @@ export const Home: React.FC<HomeProps> = ({
                 Curated Lookbook
               </span>
               <h2 className="font-editorial text-3xl sm:text-5xl text-[#292522] font-normal leading-tight">
-                THE REHAAN EDIT
+                THE HOUSE OF REHAAN EDIT
               </h2>
               <p className="text-sm sm:text-base text-[#766F68] leading-relaxed font-light">
                 An ode to graceful ease. Each piece in our boutique is chosen for its fabric breathability,
@@ -335,16 +335,16 @@ export const Home: React.FC<HomeProps> = ({
         </div>
       </section>
 
-      {/* 8. ABOUT REHAAN CLOTHING SNAPSHOT */}
+      {/* 8. ABOUT HOUSE OF REHAAN SNAPSHOT */}
       <section id="about-snapshot" className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-6">
         <span className="text-xs uppercase tracking-widest text-[#9A8568] font-semibold">
           About Us
         </span>
         <h2 className="font-editorial text-3xl sm:text-4xl text-[#292522] font-normal max-w-2xl mx-auto">
-          Rehaan Clothing
+          House Of Rehaan
         </h2>
         <p className="text-sm sm:text-base text-[#766F68] leading-relaxed max-w-2xl mx-auto font-light">
-          Rehaan Clothing is a women's fashion brand based in Trichy, offering a curated online
+          House Of Rehaan is a women's fashion brand based in Trichy, offering a curated online
           shopping experience for contemporary and traditional women's clothing.
         </p>
         <div>

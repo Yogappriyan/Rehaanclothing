@@ -100,7 +100,7 @@ export const ProductDetails: React.FC<ProductDetailsProps> = ({
     onNavigate('checkout');
   };
 
-  const whatsappMessage = `Hello Rehaan Clothing, I am interested in ${product.name} (Size: ${selectedSize}, Price: ₹${
+  const whatsappMessage = `Hello House Of Rehaan, I am interested in ${product.name} (Size: ${selectedSize}, Price: ₹${
     product.salePrice || product.price
   }). Please share the details.`;
 
@@ -193,7 +193,7 @@ export const ProductDetails: React.FC<ProductDetailsProps> = ({
         <div className="lg:col-span-5 space-y-6">
           <div>
             <div className="flex items-center justify-between text-xs text-[#9A8568] font-semibold uppercase tracking-widest">
-              <span>{product.brand || 'Rehaan Clothing'}</span>
+              <span>{product.brand || 'House Of Rehaan'}</span>
               {product.sku && <span className="text-[#766F68] font-mono">SKU: {product.sku}</span>}
             </div>
             <h1 className="font-editorial text-2xl sm:text-3xl lg:text-4xl text-[#292522] font-normal mt-1 leading-snug">

@@ -95,7 +95,7 @@ export const Header: React.FC<HeaderProps> = ({
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
             className="group flex items-center gap-1.5 sm:gap-2 cursor-pointer focus:outline-hidden shrink-0"
-            aria-label="Rehaan Clothing Home"
+            aria-label="House Of Rehaan Home"
           >
             <Logo size={isScrolled ? 'sm' : 'md'} />
           </button>

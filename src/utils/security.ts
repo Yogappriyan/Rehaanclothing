@@ -1,5 +1,5 @@
 /**
- * Security & PII Protection Utilities for Rehaan Clothing
+ * Security & PII Protection Utilities for House Of Rehaan
  * Ensures customer personal identifiable information (PII) is masked and protected
  * against shoulder surfing, screen grabs, and unauthorized DOM inspection.
  */

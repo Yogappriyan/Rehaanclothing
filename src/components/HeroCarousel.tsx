@@ -36,7 +36,7 @@ export const HeroCarousel: React.FC<HeroCarouselProps> = ({ settings, onNavigate
       title: settings.heroTitle || 'Style That Feels Like You',
       subtitle:
         settings.heroSubtitle ||
-        "Discover thoughtfully selected women's fashion from Rehaan Clothing.",
+        "Discover thoughtfully selected women's fashion from House Of Rehaan.",
       primaryCtaText: 'Shop Collection',
       primaryCtaRoute: 'shop',
       secondaryCtaText: 'Explore New Arrivals',

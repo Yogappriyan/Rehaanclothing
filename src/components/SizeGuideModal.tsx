@@ -328,7 +328,7 @@ export const SizeGuideModal: React.FC<SizeGuideModalProps> = ({
               </p>
             </div>
             <a
-              href="https://wa.me/919790478436?text=Hello%20Rehaan%20Clothing,%20I%20need%20assistance%20choosing%20the%20right%20size."
+              href="https://wa.me/919790478436?text=Hello%20House%20Of%20Rehaan,%20I%20need%20assistance%20choosing%20the%20right%20size."
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#25D366] hover:bg-[#1EBE5D] text-white rounded-xs font-semibold text-xs transition-colors shrink-0 cursor-pointer shadow-2xs"

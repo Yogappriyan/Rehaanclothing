@@ -163,7 +163,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     if (isAdmin) return;
 
     console.log(
-      '%c🔒 Rehaan Boutique Security Gate: All administrative authentication operations are cryptographically hashed and monitored.',
+      '%c🔒 House Of Rehaan Security Gate: All administrative authentication operations are cryptographically hashed and monitored.',
       'color: #9A8568; font-weight: bold; font-size: 12px;'
     );
 
@@ -260,7 +260,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </span>
             <h2 className="font-editorial text-3xl text-[#292522]">Store Owner Admin Console</h2>
             <p className="text-xs text-[#766F68] leading-relaxed max-w-md mx-auto">
-              Welcome back to the Rehaan Clothing operations portal. Access live catalog inventory,
+              Welcome back to the House Of Rehaan operations portal. Access live catalog inventory,
               customer orders, sales analytics, coupons, and store settings.
             </p>
           </div>
@@ -349,7 +349,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           </form>
 
           <div className="pt-2 border-t border-[#E9DFD0]/60 flex items-center justify-between text-[11px] text-[#766F68]">
-            <span>Rehaan Boutique Security Gate</span>
+            <span>House Of Rehaan Security Gate</span>
             <a
               href={window.location.href}
               target="_blank"
@@ -455,7 +455,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         to: triggerRecipient,
         subject: triggerSubject,
         type: 'scheduled_report',
-        content: `Scheduled Store Report Generated for Rehaan Clothing Trichy: Total Revenue: ₹${totalRevenue.toLocaleString(
+        content: `Scheduled Store Report Generated for House Of Rehaan Trichy: Total Revenue: ₹${totalRevenue.toLocaleString(
           'en-IN'
         )}, Total Orders: ${totalOrders}, Active Catalog Items: ${totalProductsCount}, Low Stock Alerts: ${
           lowStockProducts.length
@@ -1224,85 +1224,222 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       {/* TAB CONTENT 6: COUPONS */}
       {activeTab === 'coupons' && (
         <div className="space-y-6">
-          <div className="flex justify-between items-center pb-4 border-b border-[#E9DFD0]">
-            <h3 className="font-editorial text-xl text-[#292522]">Coupons & Promotions</h3>
-            <button
-              onClick={() => {
-                setEditingCoupon({
-                  code: '',
-                  discountType: 'percentage',
-                  discountValue: 10,
-                  minimumOrder: 999,
-                  active: true,
-                });
-                setIsCouponModalOpen(true);
-              }}
-              className="px-4 py-2 bg-[#292522] hover:bg-[#9A8568] text-white text-xs font-semibold uppercase tracking-wider rounded-xs flex items-center gap-2 cursor-pointer"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Create Coupon</span>
-            </button>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-            {coupons.map((c) => (
-              <div
-                key={c.id}
-                className="bg-white border border-[#E9DFD0] rounded-md p-4 space-y-3 shadow-2xs"
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 pb-4 border-b border-[#E9DFD0]">
+            <div>
+              <h3 className="font-editorial text-xl text-[#292522]">Coupons & Promotions</h3>
+              <p className="text-xs text-[#766F68] mt-0.5">
+                Manage promotional discount codes and cart checkout vouchers for your customers.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={async () => {
+                  try {
+                    const presetList = [
+                      {
+                        code: 'WELCOME10',
+                        discountType: 'percentage' as const,
+                        discountValue: 10,
+                        minimumOrder: 999,
+                        maximumDiscount: 500,
+                        active: true,
+                      },
+                      {
+                        code: 'REHAAN15',
+                        discountType: 'percentage' as const,
+                        discountValue: 15,
+                        minimumOrder: 1499,
+                        maximumDiscount: 750,
+                        active: true,
+                      },
+                      {
+                        code: 'TRICHY100',
+                        discountType: 'fixed' as const,
+                        discountValue: 100,
+                        minimumOrder: 999,
+                        active: true,
+                      },
+                      {
+                        code: 'FESTIVE20',
+                        discountType: 'percentage' as const,
+                        discountValue: 20,
+                        minimumOrder: 1999,
+                        maximumDiscount: 1000,
+                        active: true,
+                      },
+                    ];
+                    for (const p of presetList) {
+                      await saveCoupon(p);
+                    }
+                    showNotice('success', 'Standard boutique coupons restored and live!');
+                  } catch (err: any) {
+                    showNotice('error', `Failed to restore presets: ${err?.message}`);
+                  }
+                }}
+                className="px-3 py-2 bg-[#FAF8F4] border border-[#E9DFD0] hover:bg-[#E9DFD0] text-xs font-semibold text-[#292522] rounded-xs cursor-pointer"
               >
-                <div className="flex items-center justify-between">
-                  <span className="font-mono text-base font-bold text-[#292522] bg-[#FAF8F4] px-2.5 py-1 border border-[#E9DFD0] rounded-xs">
-                    {c.code}
-                  </span>
-                  <span
-                    className={`text-[10px] font-bold px-2 py-0.5 rounded-xs uppercase ${
-                      c.active ? 'bg-emerald-100 text-emerald-800' : 'bg-zinc-100 text-zinc-500'
-                    }`}
-                  >
-                    {c.active ? 'Active' : 'Disabled'}
-                  </span>
-                </div>
-
-                <div className="text-xs text-[#766F68] space-y-1">
-                  <p>
-                    Discount:{' '}
-                    <strong className="text-[#292522]">
-                      {c.discountType === 'percentage'
-                        ? `${c.discountValue}% OFF`
-                        : `₹${c.discountValue} OFF`}
-                    </strong>
-                  </p>
-                  <p>Min Order: ₹{c.minimumOrder}</p>
-                </div>
-
-                <div className="flex gap-2 pt-2 border-t border-zinc-100">
-                  <button
-                    onClick={() => {
-                      setEditingCoupon(c);
-                      setIsCouponModalOpen(true);
-                    }}
-                    className="flex-1 py-1 bg-[#FAF8F4] border border-[#E9DFD0] text-xs font-medium rounded-xs hover:bg-[#E9DFD0]"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={async () => {
-                      try {
-                        await deleteCoupon(c.id);
-                        showNotice('success', `Coupon "${c.code}" deleted.`);
-                      } catch (err: any) {
-                        showNotice('error', `Failed to delete coupon: ${err?.message}`);
-                      }
-                    }}
-                    className="p-1 border border-rose-200 text-rose-600 hover:bg-rose-50 rounded-xs cursor-pointer"
-                    title="Delete coupon"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </div>
-            ))}
+                Restore Boutique Presets
+              </button>
+              <button
+                onClick={() => {
+                  setEditingCoupon({
+                    code: '',
+                    discountType: 'percentage',
+                    discountValue: 10,
+                    minimumOrder: 999,
+                    maximumDiscount: 500,
+                    active: true,
+                  });
+                  setIsCouponModalOpen(true);
+                }}
+                className="px-4 py-2 bg-[#292522] hover:bg-[#9A8568] text-white text-xs font-semibold uppercase tracking-wider rounded-xs flex items-center gap-2 cursor-pointer shadow-2xs"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Create Coupon</span>
+              </button>
+            </div>
           </div>
+
+          {coupons.length === 0 ? (
+            <div className="bg-[#FAF8F4] border border-[#E9DFD0] rounded-md p-8 text-center space-y-3">
+              <div className="w-12 h-12 rounded-full bg-[#E9DFD0]/60 text-[#9A8568] flex items-center justify-center mx-auto">
+                <Tag className="w-6 h-6" />
+              </div>
+              <h4 className="font-editorial text-lg text-[#292522]">No Active Coupons Configured</h4>
+              <p className="text-xs text-[#766F68] max-w-md mx-auto">
+                Create custom discount vouchers or restore the standard boutique starter coupons
+                (WELCOME10, REHAAN15, TRICHY100, FESTIVE20) to offer instant checkout discounts.
+              </p>
+              <button
+                onClick={async () => {
+                  try {
+                    const presetList = [
+                      {
+                        code: 'WELCOME10',
+                        discountType: 'percentage' as const,
+                        discountValue: 10,
+                        minimumOrder: 999,
+                        maximumDiscount: 500,
+                        active: true,
+                      },
+                      {
+                        code: 'REHAAN15',
+                        discountType: 'percentage' as const,
+                        discountValue: 15,
+                        minimumOrder: 1499,
+                        maximumDiscount: 750,
+                        active: true,
+                      },
+                      {
+                        code: 'TRICHY100',
+                        discountType: 'fixed' as const,
+                        discountValue: 100,
+                        minimumOrder: 999,
+                        active: true,
+                      },
+                    ];
+                    for (const p of presetList) {
+                      await saveCoupon(p);
+                    }
+                    showNotice('success', 'Standard boutique coupons created successfully!');
+                  } catch (err: any) {
+                    showNotice('error', `Failed to create coupons: ${err?.message}`);
+                  }
+                }}
+                className="px-5 py-2.5 bg-[#292522] text-white text-xs font-semibold uppercase tracking-wider rounded-xs hover:bg-[#9A8568] cursor-pointer"
+              >
+                Seed Standard Boutique Coupons
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              {coupons.map((c) => (
+                <div
+                  key={c.id}
+                  className={`bg-white border rounded-md p-4 space-y-3 shadow-2xs transition-all ${
+                    c.active ? 'border-[#E9DFD0]' : 'border-zinc-200 opacity-60'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-base font-bold text-[#292522] bg-[#FAF8F4] px-2.5 py-1 border border-[#E9DFD0] rounded-xs tracking-wider">
+                      {c.code}
+                    </span>
+                    <button
+                      onClick={async () => {
+                        try {
+                          await saveCoupon({
+                            ...c,
+                            active: !c.active,
+                          });
+                          showNotice(
+                            'success',
+                            `Coupon "${c.code}" is now ${!c.active ? 'Active' : 'Disabled'}.`
+                          );
+                        } catch (err: any) {
+                          showNotice('error', `Could not update status: ${err?.message}`);
+                        }
+                      }}
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded-xs uppercase cursor-pointer transition-colors ${
+                        c.active
+                          ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
+                          : 'bg-zinc-100 text-zinc-500 hover:bg-zinc-200'
+                      }`}
+                      title="Click to toggle status"
+                    >
+                      {c.active ? 'Active' : 'Disabled'}
+                    </button>
+                  </div>
+
+                  <div className="text-xs text-[#766F68] space-y-1.5 bg-[#FAF8F4]/50 p-2.5 rounded-xs">
+                    <p className="flex justify-between">
+                      <span>Discount:</span>
+                      <strong className="text-[#292522]">
+                        {c.discountType === 'percentage'
+                          ? `${c.discountValue}% OFF`
+                          : `₹${c.discountValue} Flat OFF`}
+                      </strong>
+                    </p>
+                    <p className="flex justify-between">
+                      <span>Min Order:</span>
+                      <span className="text-[#292522]">₹{c.minimumOrder || 0}</span>
+                    </p>
+                    {c.maximumDiscount && c.discountType === 'percentage' && (
+                      <p className="flex justify-between">
+                        <span>Max Cap:</span>
+                        <span className="text-[#292522]">₹{c.maximumDiscount}</span>
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="flex gap-2 pt-2 border-t border-zinc-100">
+                    <button
+                      onClick={() => {
+                        setEditingCoupon(c);
+                        setIsCouponModalOpen(true);
+                      }}
+                      className="flex-1 py-1.5 bg-[#FAF8F4] border border-[#E9DFD0] text-xs font-semibold rounded-xs hover:bg-[#E9DFD0] text-[#292522] cursor-pointer"
+                    >
+                      Edit Details
+                    </button>
+                    <button
+                      onClick={async () => {
+                        try {
+                          await deleteCoupon(c.id);
+                          showNotice('success', `Coupon "${c.code}" deleted.`);
+                        } catch (err: any) {
+                          showNotice('error', `Failed to delete coupon: ${err?.message}`);
+                        }
+                      }}
+                      className="px-2.5 py-1.5 border border-rose-200 text-rose-600 hover:bg-rose-50 rounded-xs cursor-pointer"
+                      title="Delete coupon"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -1315,7 +1452,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <span>Automated Notification Pipeline & Cloud Delivery</span>
             </h3>
             <p className="text-xs text-[#766F68] leading-relaxed max-w-2xl">
-              Rehaan Clothing triggers real-time and scheduled email notifications via structured Cloud
+              House Of Rehaan triggers real-time and scheduled email notifications via structured Cloud
               Functions logic: customer purchase receipts, courier dispatch tracking, and scheduled
               daily/weekly store performance reports sent to store owners.
             </p>
@@ -1429,6 +1566,33 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 onChange={(e) => setLocalSettings({ ...localSettings, storeName: e.target.value })}
                 className="w-full p-2.5 border border-[#E9DFD0] rounded-xs"
               />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block font-semibold text-[#292522] mb-1">
+                  Google Maps Location URL (Get Directions)
+                </label>
+                <input
+                  type="url"
+                  value={localSettings.googleMapsUrl || 'https://maps.app.goo.gl/mLggnqsck5AnXRRN6'}
+                  onChange={(e) =>
+                    setLocalSettings({ ...localSettings, googleMapsUrl: e.target.value })
+                  }
+                  placeholder="https://maps.app.goo.gl/..."
+                  className="w-full p-2.5 border border-[#E9DFD0] rounded-xs font-mono text-[11px]"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-[#292522] mb-1">Store Address</label>
+                <input
+                  type="text"
+                  value={localSettings.address}
+                  onChange={(e) => setLocalSettings({ ...localSettings, address: e.target.value })}
+                  className="w-full p-2.5 border border-[#E9DFD0] rounded-xs"
+                />
+              </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1868,16 +2032,57 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </div>
               </div>
 
-              <div>
-                <label className="block font-semibold mb-1">Minimum Order Amount (₹)</label>
-                <input
-                  type="number"
-                  value={editingCoupon.minimumOrder || 0}
-                  onChange={(e) =>
-                    setEditingCoupon({ ...editingCoupon, minimumOrder: Number(e.target.value) })
-                  }
-                  className="w-full p-2 border border-[#E9DFD0] rounded-xs"
-                />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold mb-1">Minimum Order Amount (₹)</label>
+                  <input
+                    type="number"
+                    value={editingCoupon.minimumOrder ?? 0}
+                    onChange={(e) =>
+                      setEditingCoupon({ ...editingCoupon, minimumOrder: Number(e.target.value) })
+                    }
+                    className="w-full p-2 border border-[#E9DFD0] rounded-xs"
+                    placeholder="0"
+                  />
+                </div>
+
+                {editingCoupon.discountType === 'percentage' && (
+                  <div>
+                    <label className="block font-semibold mb-1">Max Discount Cap (₹)</label>
+                    <input
+                      type="number"
+                      value={editingCoupon.maximumDiscount ?? ''}
+                      onChange={(e) =>
+                        setEditingCoupon({
+                          ...editingCoupon,
+                          maximumDiscount: e.target.value ? Number(e.target.value) : undefined,
+                        })
+                      }
+                      className="w-full p-2 border border-[#E9DFD0] rounded-xs"
+                      placeholder="Optional, e.g. 500"
+                    />
+                  </div>
+                )}
+              </div>
+
+              <div className="pt-1 flex items-center justify-between p-2.5 bg-[#FAF8F4] border border-[#E9DFD0] rounded-xs">
+                <div>
+                  <span className="font-semibold block text-[#292522]">Coupon Status</span>
+                  <span className="text-[11px] text-[#766F68]">
+                    {editingCoupon.active ? 'Active & redeemable by shoppers' : 'Disabled (hidden from checkout)'}
+                  </span>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={editingCoupon.active ?? true}
+                    onChange={(e) =>
+                      setEditingCoupon({ ...editingCoupon, active: e.target.checked })
+                    }
+                    className="sr-only peer"
+                  />
+                  <div className="w-9 h-5 bg-zinc-300 peer-focus:outline-hidden rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600"></div>
+                </label>
               </div>
 
               <div className="flex justify-end gap-2 pt-3">

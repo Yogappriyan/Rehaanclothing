@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
-import { Check, ShieldCheck, ArrowRight, ShoppingBag, Truck, CreditCard } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Check, ShieldCheck, ArrowRight, ShoppingBag, Truck, CreditCard, Tag, Sparkles } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
-import { createOrder, subscribeCoupons } from '../firebase/db';
+import { createOrder, subscribeCoupons, validateCouponCode } from '../firebase/db';
 import type { ShippingAddress, Coupon } from '../types';
 
 interface CheckoutProps {
@@ -27,55 +27,128 @@ export const Checkout: React.FC<CheckoutProps> = ({ onNavigate }) => {
   });
 
   const [paymentMethod, setPaymentMethod] = useState<'cod' | 'upi_transfer' | 'store_pickup'>('cod');
-  const [couponInput, setCouponInput] = useState('');
+  const [couponInput, setCouponInput] = useState(appliedCoupon?.code || '');
   const [couponError, setCouponError] = useState('');
-  const [couponSuccess, setCouponSuccess] = useState('');
+  const [couponSuccess, setCouponSuccess] = useState(
+    appliedCoupon ? `Coupon ${appliedCoupon.code} active (-₹${discountAmount})` : ''
+  );
+  const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderCompleteId, setOrderCompleteId] = useState<string | null>(null);
 
   const [couponsList, setCouponsList] = useState<Coupon[]>([]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const unsub = subscribeCoupons((c) => setCouponsList(c));
     return () => unsub();
   }, []);
 
-  const handleApplyCoupon = () => {
+  useEffect(() => {
+    if (appliedCoupon) {
+      setCouponInput(appliedCoupon.code);
+      setCouponSuccess(`Coupon ${appliedCoupon.code} active (-₹${discountAmount.toLocaleString('en-IN')})`);
+    } else {
+      setCouponSuccess('');
+    }
+  }, [appliedCoupon, discountAmount]);
+
+  const handleApplyCoupon = async (codeOverride?: string) => {
     setCouponError('');
     setCouponSuccess('');
-    const code = couponInput.trim().toUpperCase();
-    if (!code) return;
+    const code = (codeOverride || couponInput).trim().toUpperCase();
+    if (!code) {
+      setCouponError('Please enter a coupon code.');
+      return;
+    }
 
-    // Check pre-configured or Firestore coupons
-    const found = couponsList.find((c) => c.code.toUpperCase() === code && c.active);
-    if (found) {
-      if (subtotal < found.minimumOrder) {
-        setCouponError(`Minimum order amount of ₹${found.minimumOrder} required for ${code}.`);
+    setIsApplyingCoupon(true);
+    try {
+      // 1. Check in-memory coupons list
+      let target: Coupon | undefined = couponsList.find(
+        (c) => c.code.toUpperCase() === code && c.active !== false
+      );
+
+      // 2. Query cloud database / local storage if not found in memory
+      if (!target) {
+        const validated = await validateCouponCode(code);
+        if (validated) {
+          target = validated;
+        }
+      }
+
+      // 3. Fallback to standard welcome coupon if matched
+      if (!target && code === 'WELCOME10') {
+        target = {
+          id: 'welcome10',
+          code: 'WELCOME10',
+          discountType: 'percentage',
+          discountValue: 10,
+          minimumOrder: 999,
+          maximumDiscount: 500,
+          startDate: '',
+          endDate: '',
+          active: true,
+        };
+      }
+
+      if (!target || target.active === false) {
+        setCouponError(`Coupon code "${code}" is invalid or expired.`);
         return;
       }
-      applyCoupon(found);
-      setCouponSuccess(`Coupon ${code} applied successfully!`);
-      return;
-    }
 
-    // Default welcome coupon fallback
-    if (code === 'WELCOME10') {
-      applyCoupon({
-        id: 'welcome10',
-        code: 'WELCOME10',
-        discountType: 'percentage',
-        discountValue: 10,
-        minimumOrder: 999,
-        maximumDiscount: 500,
-        startDate: '',
-        endDate: '',
-        active: true,
-      });
-      setCouponSuccess('Coupon WELCOME10 applied (10% OFF)!');
-      return;
-    }
+      // Check minimum order
+      const minOrder = target.minimumOrder || 0;
+      if (subtotal < minOrder) {
+        setCouponError(
+          `Minimum order value of ₹${minOrder.toLocaleString('en-IN')} required for ${code}. Add ₹${(
+            minOrder - subtotal
+          ).toLocaleString('en-IN')} more to unlock!`
+        );
+        return;
+      }
 
-    setCouponError('Invalid or expired coupon code.');
+      // Check dates if present
+      const now = new Date();
+      if (target.startDate && new Date(target.startDate) > now) {
+        setCouponError(`Coupon "${code}" is scheduled for an upcoming sale.`);
+        return;
+      }
+      if (target.endDate && new Date(target.endDate) < now) {
+        setCouponError(`Coupon "${code}" has expired.`);
+        return;
+      }
+
+      applyCoupon(target);
+      setCouponInput(target.code);
+
+      // Calculate instant saving
+      let saving = 0;
+      if (target.discountType === 'percentage') {
+        saving = Math.round((subtotal * target.discountValue) / 100);
+        if (target.maximumDiscount && saving > target.maximumDiscount) {
+          saving = target.maximumDiscount;
+        }
+      } else {
+        saving = target.discountValue;
+      }
+      saving = Math.min(saving, subtotal);
+
+      setCouponSuccess(
+        `Coupon ${target.code} applied! You save ₹${saving.toLocaleString('en-IN')} on this order.`
+      );
+    } catch (err) {
+      console.error('Coupon application failed:', err);
+      setCouponError('Unable to verify coupon. Please check connection and try again.');
+    } finally {
+      setIsApplyingCoupon(false);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    removeCoupon();
+    setCouponInput('');
+    setCouponSuccess('');
+    setCouponError('');
   };
 
   const handleSubmitOrder = async (e: React.FormEvent) => {
@@ -94,7 +167,7 @@ export const Checkout: React.FC<CheckoutProps> = ({ onNavigate }) => {
         customerId: user?.uid || 'guest',
         customerName: formData.customerName,
         phone: formData.phone,
-        email: formData.email || 'customer@rehaanclothing.com',
+        email: formData.email || 'customer@houseofrehaan.com',
         items,
         subtotal,
         discount: discountAmount,
@@ -128,7 +201,7 @@ export const Checkout: React.FC<CheckoutProps> = ({ onNavigate }) => {
           Order Received
         </span>
         <h1 className="font-editorial text-3xl sm:text-4xl text-[#292522]">
-          Thank you for choosing Rehaan Clothing
+          Thank you for choosing House Of Rehaan
         </h1>
         <p className="text-sm text-[#766F68] max-w-md mx-auto leading-relaxed">
           Your order has been recorded in our Trichy boutique system. An automated confirmation and
@@ -386,10 +459,18 @@ export const Checkout: React.FC<CheckoutProps> = ({ onNavigate }) => {
                 />
                 <div>
                   <span className="text-xs font-semibold text-[#292522] block">
-                    Pick up at Rehaan Boutique (Trichy)
+                    Pick up at House Of Rehaan Boutique (Trichy)
                   </span>
                   <span className="text-[11px] text-[#766F68]">
-                    Collect in person at Plot No. 46, 2nd Cross, Sathanur, Trichy.
+                    Collect in person at Plot No. 46, 2nd Cross, Sathanur, Trichy.{' '}
+                    <a
+                      href="https://maps.app.goo.gl/mLggnqsck5AnXRRN6"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[#9A8568] hover:underline font-semibold inline-flex items-center ml-1"
+                    >
+                      Get Directions ↗
+                    </a>
                   </span>
                 </div>
               </label>
@@ -432,36 +513,101 @@ export const Checkout: React.FC<CheckoutProps> = ({ onNavigate }) => {
             </div>
 
             {/* Coupon input */}
-            <div className="pt-3 border-t border-[#E9DFD0]">
+            <div className="pt-3 border-t border-[#E9DFD0] space-y-2.5">
+              <label className="block text-xs font-semibold text-[#292522] flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <Tag className="w-3.5 h-3.5 text-[#9A8568]" />
+                  <span>Have a Promo or Coupon Code?</span>
+                </span>
+                {appliedCoupon && (
+                  <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-xs font-semibold border border-emerald-200">
+                    Applied
+                  </span>
+                )}
+              </label>
+
               <div className="flex gap-2">
                 <input
                   type="text"
                   value={couponInput}
-                  onChange={(e) => setCouponInput(e.target.value)}
-                  placeholder="Coupon code (e.g. WELCOME10)"
-                  className="flex-1 text-xs p-2.5 border border-[#E9DFD0] rounded-xs uppercase tracking-wider"
+                  onChange={(e) => {
+                    setCouponInput(e.target.value.toUpperCase());
+                    setCouponError('');
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleApplyCoupon();
+                    }
+                  }}
+                  placeholder="Enter coupon code (e.g. WELCOME10)"
+                  className="flex-1 text-xs p-2.5 border border-[#E9DFD0] rounded-xs uppercase tracking-wider font-mono font-medium focus:outline-hidden focus:border-[#9A8568]"
                 />
                 <button
                   type="button"
-                  onClick={handleApplyCoupon}
-                  className="px-4 py-2.5 bg-[#FAF8F4] border border-[#E9DFD0] hover:bg-[#E9DFD0] text-xs font-semibold text-[#292522] rounded-xs"
+                  onClick={() => handleApplyCoupon()}
+                  disabled={isApplyingCoupon || !couponInput.trim()}
+                  className="px-4 py-2.5 bg-[#292522] hover:bg-[#9A8568] text-white text-xs font-semibold uppercase tracking-wider rounded-xs transition-colors cursor-pointer disabled:opacity-50"
                 >
-                  Apply
+                  {isApplyingCoupon ? 'Checking...' : 'Apply'}
                 </button>
               </div>
 
-              {couponError && <p className="text-[11px] text-rose-600 mt-1">{couponError}</p>}
-              {couponSuccess && (
-                <p className="text-[11px] text-emerald-700 mt-1 flex items-center justify-between">
-                  <span>{couponSuccess}</span>
+              {couponError && (
+                <div className="p-2.5 bg-rose-50 border border-rose-200 rounded-xs text-[11px] text-rose-700 leading-normal">
+                  {couponError}
+                </div>
+              )}
+
+              {appliedCoupon && (
+                <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-xs flex items-center justify-between text-xs text-emerald-800">
+                  <div className="flex items-center gap-1.5 font-semibold">
+                    <span className="bg-emerald-200 text-emerald-900 px-2 py-0.5 rounded-xs font-mono text-[11px] tracking-wider">
+                      {appliedCoupon.code}
+                    </span>
+                    <span>
+                      {appliedCoupon.discountType === 'percentage'
+                        ? `${appliedCoupon.discountValue}% OFF`
+                        : `₹${appliedCoupon.discountValue} Flat OFF`}{' '}
+                      applied (-₹{discountAmount.toLocaleString('en-IN')})
+                    </span>
+                  </div>
                   <button
                     type="button"
-                    onClick={removeCoupon}
-                    className="text-xs underline text-rose-600 ml-2"
+                    onClick={handleRemoveCoupon}
+                    className="text-xs text-rose-600 hover:text-rose-800 font-semibold underline cursor-pointer ml-2"
                   >
                     Remove
                   </button>
-                </p>
+                </div>
+              )}
+
+              {/* Available Boutique Offers Chips */}
+              {couponsList.filter((c) => c.active && (!appliedCoupon || appliedCoupon.code !== c.code)).length > 0 && (
+                <div className="pt-1.5 space-y-1.5">
+                  <span className="text-[10px] font-semibold text-[#766F68] uppercase tracking-wider flex items-center gap-1">
+                    <Sparkles className="w-3 h-3 text-[#9A8568]" />
+                    <span>Available Store Offers (Click to apply):</span>
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {couponsList
+                      .filter((c) => c.active && (!appliedCoupon || appliedCoupon.code !== c.code))
+                      .slice(0, 3)
+                      .map((c) => (
+                        <button
+                          key={c.id || c.code}
+                          type="button"
+                          onClick={() => handleApplyCoupon(c.code)}
+                          className="text-[10px] bg-[#FAF8F4] hover:bg-[#E9DFD0] text-[#292522] border border-[#E9DFD0] px-2 py-1 rounded-xs flex items-center gap-1 font-medium transition-colors cursor-pointer"
+                        >
+                          <span className="font-mono font-bold">{c.code}</span>
+                          <span className="text-[#9A8568]">
+                            ({c.discountType === 'percentage' ? `${c.discountValue}%` : `₹${c.discountValue}`})
+                          </span>
+                        </button>
+                      ))}
+                  </div>
+                </div>
               )}
             </div>
 
@@ -475,20 +621,25 @@ export const Checkout: React.FC<CheckoutProps> = ({ onNavigate }) => {
               </div>
 
               {discountAmount > 0 && (
-                <div className="flex justify-between text-emerald-700">
-                  <span>Discount ({appliedCoupon?.code})</span>
+                <div className="flex justify-between text-emerald-700 font-medium">
+                  <span className="flex items-center gap-1">
+                    <span>Coupon Discount</span>
+                    <span className="font-mono text-[10px] bg-emerald-100 px-1 rounded-xs text-emerald-800">
+                      {appliedCoupon?.code}
+                    </span>
+                  </span>
                   <span>-₹{discountAmount.toLocaleString('en-IN')}</span>
                 </div>
               )}
 
               <div className="flex justify-between">
-                <span>Delivery Fee</span>
+                <span>Delivery (Trichy & PAN India)</span>
                 <span>{deliveryFee === 0 ? 'FREE' : `₹${deliveryFee}`}</span>
               </div>
 
               <div className="flex justify-between pt-3 border-t border-[#E9DFD0] text-base font-semibold text-[#292522]">
                 <span>Total Amount</span>
-                <span>₹{total.toLocaleString('en-IN')}</span>
+                <span className="text-lg text-[#292522]">₹{total.toLocaleString('en-IN')}</span>
               </div>
             </div>
 

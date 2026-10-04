@@ -258,12 +258,12 @@ function MainApp() {
       {settings.whatsappEnabled && (
         <a
           href={`https://wa.me/${settings.whatsappNumber}?text=${encodeURIComponent(
-            'Hello Rehaan Clothing, I would like styling or order assistance.'
+            'Hello House Of Rehaan, I would like styling or order assistance.'
           )}`}
           target="_blank"
           rel="noopener noreferrer"
           className="fixed bottom-6 right-6 z-40 bg-[#25D366] hover:bg-[#20ba59] text-white p-3.5 rounded-full shadow-lg transition-transform hover:scale-110 flex items-center justify-center cursor-pointer"
-          title="Chat with Rehaan Boutique Trichy"
+          title="Chat with House Of Rehaan Boutique Trichy"
           aria-label="WhatsApp Chat"
         >
           <MessageCircle className="w-6 h-6" />

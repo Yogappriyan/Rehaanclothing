@@ -50,7 +50,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
         {/* Top bar with close */}
         <div className="flex items-center justify-between pb-6 border-b border-[#E9DFD0]">
           <span className="text-xs uppercase tracking-widest text-[#9A8568] font-semibold">
-            Search Rehaan Clothing
+            Search House Of Rehaan
           </span>
           <button
             onClick={onClose}

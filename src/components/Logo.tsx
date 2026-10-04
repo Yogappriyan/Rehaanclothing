@@ -23,8 +23,8 @@ export const Logo: React.FC<LogoProps> = ({
     <div className={`flex items-center gap-1.5 sm:gap-2.5 shrink-0 ${className}`}>
       <div className="relative overflow-hidden rounded-full p-0.5 border border-[#E9DFD0]/60 shadow-xs bg-[#FAF8F4] shrink-0">
         <img
-          src="/Logore.jpeg"
-          alt="Rehaan Clothing Logo"
+          src="/hof-logo.jpeg"
+          alt="House Of Rehaan Logo"
           className={`${sizeClasses[size]} w-auto object-contain transition-transform duration-300 group-hover:scale-105`}
           onError={(e) => {
             // Graceful fallback if image doesn't load
@@ -35,19 +35,19 @@ export const Logo: React.FC<LogoProps> = ({
       {showText && (
         <div className="flex flex-col text-left select-none shrink-0">
           <span
-            className={`font-editorial tracking-wide font-normal ${
-              size === 'lg' ? 'text-xl sm:text-2xl' : size === 'sm' ? 'text-base sm:text-lg' : 'text-base sm:text-xl'
+            className={`font-editorial tracking-wide font-normal leading-tight ${
+              size === 'lg' ? 'text-xl sm:text-2xl' : size === 'sm' ? 'text-sm sm:text-base' : 'text-base sm:text-lg'
             } ${inverted ? 'text-[#FAF8F4]' : 'text-[#292522]'}`}
             style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
           >
-            Rehaan
+            House Of Rehaan
           </span>
           <span
             className={`text-[8px] sm:text-[9px] uppercase tracking-[0.2em] sm:tracking-[0.25em] font-medium ${
               inverted ? 'text-[#E9DFD0]' : 'text-[#9A8568]'
             }`}
           >
-            Clothing
+            Trichy Boutique
           </span>
         </div>
       )}

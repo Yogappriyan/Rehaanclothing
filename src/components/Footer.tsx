@@ -31,7 +31,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, settings }) => {
             {settings.whatsappEnabled && settings.whatsappNumber && (
               <a
                 href={`https://wa.me/${settings.whatsappNumber}?text=${encodeURIComponent(
-                  'Hello Rehaan Clothing, I would like to know more about your collection.'
+                  'Hello House Of Rehaan, I would like to know more about your collection.'
                 )}`}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -121,10 +121,16 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, settings }) => {
             <div className="space-y-2.5 text-sm text-[#766F68]">
               <p className="flex items-start gap-2.5">
                 <MapPin className="w-4 h-4 text-[#9A8568] shrink-0 mt-0.5" />
-                <span>
+                <a
+                  href={settings.googleMapsUrl || 'https://maps.app.goo.gl/mLggnqsck5AnXRRN6'}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-[#292522] hover:underline transition-colors"
+                  title="View Boutique Location on Google Maps"
+                >
                   {settings.address ||
                     'Plot No. 46, 2nd Cross, Sathanur, Trichy – 620102, Tamil Nadu, India'}
-                </span>
+                </a>
               </p>
               <p className="flex items-center gap-2.5">
                 <Phone className="w-4 h-4 text-[#9A8568] shrink-0" />
@@ -147,24 +153,22 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, settings }) => {
               <p className="text-xs text-[#766F68] pt-1">
                 Store Hours: {settings.businessHours || 'Mon - Sat: 10:00 AM - 8:30 PM'}
               </p>
-              {settings.googleMapsUrl && (
-                <a
-                  href={settings.googleMapsUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-xs text-[#9A8568] hover:underline pt-1"
-                >
-                  <span>Get Directions on Google Maps</span>
-                  <ArrowUpRight className="w-3 h-3" />
-                </a>
-              )}
+              <a
+                href={settings.googleMapsUrl || 'https://maps.app.goo.gl/mLggnqsck5AnXRRN6'}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-xs text-[#9A8568] hover:text-[#292522] hover:underline pt-1 font-semibold"
+              >
+                <span>Get Directions on Google Maps</span>
+                <ArrowUpRight className="w-3.5 h-3.5" />
+              </a>
             </div>
           </div>
         </div>
 
         {/* Bottom Bar */}
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between text-xs text-[#766F68] gap-4">
-          <p>© {new Date().getFullYear()} Rehaan Clothing. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} House Of Rehaan. All rights reserved.</p>
           <div className="flex items-center space-x-6">
             <button
               onClick={() => onNavigate('admin')}

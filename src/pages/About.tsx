@@ -16,10 +16,10 @@ export const About: React.FC<AboutProps> = ({ settings, onNavigate }) => {
           Our Heritage & Passion
         </span>
         <h1 className="font-editorial text-4xl sm:text-5xl text-[#292522] font-normal">
-          The Story of Rehaan Clothing
+          The Story of House Of Rehaan
         </h1>
         <p className="text-base text-[#766F68] max-w-2xl mx-auto font-light leading-relaxed">
-          Rooted in the historic city of Tiruchirappalli (Trichy), Tamil Nadu, Rehaan Clothing is a women's
+          Rooted in the historic city of Tiruchirappalli (Trichy), Tamil Nadu, House Of Rehaan is a women's
           fashion house born out of an appreciation for authentic textiles, modern tailoring, and everyday grace.
         </p>
       </div>
@@ -28,7 +28,7 @@ export const About: React.FC<AboutProps> = ({ settings, onNavigate }) => {
       <div className="aspect-16/9 rounded-md overflow-hidden bg-[#F4EFE6] border border-[#E9DFD0] shadow-sm">
         <img
           src="/lookbook-banner.jpg"
-          alt="Rehaan Clothing Craftsmanship"
+          alt="House Of Rehaan Craftsmanship"
           className="w-full h-full object-cover object-center"
         />
       </div>
@@ -41,7 +41,7 @@ export const About: React.FC<AboutProps> = ({ settings, onNavigate }) => {
           </div>
           <h3 className="font-editorial text-xl text-[#292522]">Curated Distinctiveness</h3>
           <p className="text-xs text-[#766F68] leading-relaxed">
-            We avoid mass, impersonal production. Every collection at Rehaan Clothing is hand-selected in small,
+            We avoid mass, impersonal production. Every collection at House Of Rehaan is hand-selected in small,
             deliberate batches to ensure exceptional drape, texture, and lasting charm.
           </p>
         </div>
@@ -76,7 +76,7 @@ export const About: React.FC<AboutProps> = ({ settings, onNavigate }) => {
             Visit Our Boutique
           </span>
           <h2 className="font-editorial text-2xl sm:text-3xl text-[#292522]">
-            Rehaan Clothing Studio in Trichy
+            House Of Rehaan Studio in Trichy
           </h2>
           <p className="text-xs sm:text-sm text-[#766F68] leading-relaxed">
             We warmly welcome you to visit our store to experience fabrics, try sizes, or discuss customized fits
@@ -90,11 +90,25 @@ export const About: React.FC<AboutProps> = ({ settings, onNavigate }) => {
               <MapPin className="w-4 h-4 text-[#9A8568]" />
               <span>Studio Address</span>
             </div>
-            <p className="text-[#766F68] leading-relaxed">
+            <a
+              href={settings.googleMapsUrl || 'https://maps.app.goo.gl/mLggnqsck5AnXRRN6'}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[#766F68] hover:text-[#292522] hover:underline leading-relaxed block"
+              title="View on Google Maps"
+            >
               Plot No. 46, 2nd Cross,<br />
-              Sathanur,<br />
-              Trichy – 620102, Tamil Nadu, India
-            </p>
+              Kailash Nagar, Kattur,<br />
+              Trichy – 620019, Tamil Nadu, India
+            </a>
+            <a
+              href={settings.googleMapsUrl || 'https://maps.app.goo.gl/mLggnqsck5AnXRRN6'}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[#9A8568] hover:text-[#292522] hover:underline text-[11px] font-semibold inline-flex items-center gap-1 pt-1"
+            >
+              <span>Get Directions on Google Maps →</span>
+            </a>
           </div>
 
           <div className="space-y-1">
@@ -112,7 +126,7 @@ export const About: React.FC<AboutProps> = ({ settings, onNavigate }) => {
               <span>Official Email</span>
             </div>
             <p className="text-[#766F68]">houseofrehaan@gmail.com</p>
-            <p className="text-[#766F68]"></p>
+            <p className="text-[#766F68]">animeflicks2310@gmail.com</p>
           </div>
         </div>
 
