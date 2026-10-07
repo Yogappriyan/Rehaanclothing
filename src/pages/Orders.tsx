@@ -362,13 +362,28 @@ export const Orders: React.FC<OrdersProps> = ({ onNavigate }) => {
                     <p>
                       Payment Method:{' '}
                       <strong className="text-[#292522] capitalize">
-                        {guestTrackedOrder.paymentMethod.replace('_', ' ')}
+                        {guestTrackedOrder.paymentMethod === 'razorpay'
+                          ? 'Razorpay Secure (Online)'
+                          : guestTrackedOrder.paymentMethod.replace('_', ' ')}
                       </strong>
                     </p>
                     <p>
                       Payment Status:{' '}
-                      <strong className="text-[#292522]">{guestTrackedOrder.paymentStatus}</strong>
+                      <strong
+                        className={
+                          guestTrackedOrder.paymentStatus === 'Paid'
+                            ? 'text-emerald-700 font-semibold'
+                            : 'text-[#292522]'
+                        }
+                      >
+                        {guestTrackedOrder.paymentStatus}
+                      </strong>
                     </p>
+                    {guestTrackedOrder.razorpayPaymentId && (
+                      <p className="text-[11px] text-[#766F68] font-mono mt-0.5">
+                        Txn ID: {guestTrackedOrder.razorpayPaymentId}
+                      </p>
+                    )}
                     {guestTrackedOrder.trackingNumber && (
                       <p className="mt-1">
                         Tracking Ref:{' '}
@@ -592,13 +607,28 @@ export const Orders: React.FC<OrdersProps> = ({ onNavigate }) => {
                         <p>
                           Method:{' '}
                           <strong className="text-[#292522] capitalize">
-                            {selectedOrder.paymentMethod.replace('_', ' ')}
+                            {selectedOrder.paymentMethod === 'razorpay'
+                              ? 'Razorpay Secure (Online)'
+                              : selectedOrder.paymentMethod.replace('_', ' ')}
                           </strong>
                         </p>
                         <p>
                           Payment Status:{' '}
-                          <strong className="text-[#292522]">{selectedOrder.paymentStatus}</strong>
+                          <strong
+                            className={
+                              selectedOrder.paymentStatus === 'Paid'
+                                ? 'text-emerald-700 font-semibold'
+                                : 'text-[#292522]'
+                            }
+                          >
+                            {selectedOrder.paymentStatus}
+                          </strong>
                         </p>
+                        {selectedOrder.razorpayPaymentId && (
+                          <p className="text-[11px] text-[#766F68] font-mono mt-0.5">
+                            Txn ID: {selectedOrder.razorpayPaymentId}
+                          </p>
+                        )}
                         {selectedOrder.trackingNumber && (
                           <p className="mt-1">
                             Tracking:{' '}

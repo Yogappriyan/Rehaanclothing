@@ -16,7 +16,7 @@ const decodeToken = (s: string) => {
 const firebaseConfig = {
   projectId: "gen-lang-client-0676049705",
   appId: "1:820719264557:web:c306c7f747a92db19f69a4",
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || decodeToken("QUl6YVN5REJscDZTS3ktektVLWVocW50S1RqblpjQzNZU081MHk0"),
+  apiKey: (typeof import.meta !== 'undefined' && import.meta.env?.VITE_FIREBASE_API_KEY) || (typeof process !== 'undefined' && process.env?.VITE_FIREBASE_API_KEY) || decodeToken("QUl6YVN5REJscDZTS3ktektVLWVocW50S1RqblpjQzNZU081MHk0"),
   authDomain: "gen-lang-client-0676049705.firebaseapp.com",
   firestoreDatabaseId: "ai-studio-9f7844b4-a79b-4239-b07e-84e95211b722",
   storageBucket: "gen-lang-client-0676049705.firebasestorage.app",

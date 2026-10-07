@@ -78,20 +78,20 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           }`}
         />
 
-        {/* Badges */}
-        <div className="absolute top-3 left-3 flex flex-col gap-1.5 z-10">
+        {/* Badges - Ultra compact on mobile to never interfere with garment photos */}
+        <div className="absolute top-1.5 left-1.5 sm:top-3 sm:left-3 flex flex-col gap-1 sm:gap-1.5 z-10 items-start pointer-events-none">
           {product.salePrice && product.salePrice < product.price && (
-            <span className="bg-[#9A8568] text-[#FAF8F4] text-[10px] font-semibold tracking-wider uppercase px-2.5 py-1 rounded-xs">
+            <span className="bg-[#9A8568] text-[#FAF8F4] text-[8px] sm:text-[10px] font-bold sm:font-semibold tracking-tight sm:tracking-wider uppercase px-1.5 py-0.5 sm:px-2.5 sm:py-1 rounded-xs shadow-2xs leading-none">
               SALE {product.discountPercentage ? `-${product.discountPercentage}%` : ''}
             </span>
           )}
           {product.newArrival && !isOutOfStock && (
-            <span className="bg-[#FAF8F4]/90 backdrop-blur-xs text-[#292522] border border-[#E9DFD0] text-[10px] tracking-wider uppercase px-2 py-0.5 rounded-xs font-medium">
+            <span className="bg-[#FAF8F4]/95 backdrop-blur-xs text-[#292522] border border-[#E9DFD0] text-[7.5px] sm:text-[10px] tracking-tight sm:tracking-wider uppercase px-1.5 py-0.5 sm:px-2 sm:py-0.5 rounded-xs font-semibold sm:font-medium shadow-2xs leading-none">
               NEW
             </span>
           )}
           {isOutOfStock && (
-            <span className="bg-[#292522]/85 text-[#FAF8F4] text-[10px] tracking-wider uppercase px-2 py-0.5 rounded-xs font-medium">
+            <span className="bg-[#292522]/90 text-[#FAF8F4] text-[7.5px] sm:text-[10px] tracking-tight sm:tracking-wider uppercase px-1.5 py-0.5 sm:px-2 sm:py-0.5 rounded-xs font-semibold sm:font-medium leading-none">
               OUT OF STOCK
             </span>
           )}
@@ -104,14 +104,14 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             e.stopPropagation();
             toggleWishlist(product.id);
           }}
-          className={`absolute top-3 right-3 p-2 rounded-full backdrop-blur-md transition-all duration-300 z-20 cursor-pointer ${
+          className={`absolute top-1.5 right-1.5 sm:top-3 sm:right-3 p-1.5 sm:p-2 rounded-full backdrop-blur-md transition-all duration-300 z-20 cursor-pointer ${
             isFavorited
               ? 'bg-[#FAF8F4] text-rose-600 shadow-sm opacity-100'
               : 'bg-[#FAF8F4]/80 text-[#292522] hover:bg-[#FAF8F4] md:opacity-0 group-hover:opacity-100'
           }`}
           aria-label="Toggle Wishlist"
         >
-          <Heart className={`w-4 h-4 ${isFavorited ? 'fill-rose-600' : ''}`} />
+          <Heart className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${isFavorited ? 'fill-rose-600' : ''}`} />
         </button>
 
         {/* Quick View & Add to Bag Floating Action Bar */}

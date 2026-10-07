@@ -27,6 +27,7 @@ import {
   ExternalLink,
   LogOut,
   Upload,
+  Image as ImageIcon,
 } from 'lucide-react';
 import {
   saveProduct,
@@ -848,6 +849,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       </span>
                     </div>
 
+                    {/* Multiple images indicator */}
+                    <div className="absolute top-2 left-2">
+                      <span className="text-[9px] font-bold px-2 py-0.5 rounded-xs bg-[#292522]/80 text-[#FAF8F4] flex items-center gap-1 backdrop-blur-xs font-mono">
+                        <ImageIcon className="w-2.5 h-2.5 text-[#C2B5A5]" />
+                        <span>{p.images?.length || 1} {p.images?.length === 1 ? 'photo' : 'photos'}</span>
+                      </span>
+                    </div>
+
                     <button
                       type="button"
                       onClick={() => {
@@ -858,7 +867,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       title="Upload photos from device or edit images"
                     >
                       <Upload className="w-3 h-3" />
-                      <span>Upload / Manage Photos</span>
+                      <span>Manage Gallery ({p.images?.length || 1} Photos)</span>
                     </button>
                   </div>
 
@@ -954,8 +963,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       <span className="font-bold text-sm text-[#292522]">
                         ₹{order.totalAmount.toLocaleString('en-IN')}
                       </span>
-                      <span className="px-2.5 py-1 rounded-xs uppercase font-semibold text-[10px] bg-[#E9DFD0] text-[#292522]">
-                        {order.paymentMethod.replace('_', ' ')} • {order.paymentStatus}
+                      <span
+                        className={`px-2.5 py-1 rounded-xs uppercase font-semibold text-[10px] ${
+                          order.paymentStatus === 'Paid'
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : 'bg-[#E9DFD0] text-[#292522]'
+                        }`}
+                      >
+                        {order.paymentMethod === 'razorpay'
+                          ? 'Razorpay Secure'
+                          : order.paymentMethod.replace('_', ' ')}{' '}
+                        • {order.paymentStatus}
                       </span>
                     </div>
                   </div>
@@ -996,6 +1014,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       <p>
                         {revealedOrders[order.id] ? order.email : maskEmail(order.email)}
                       </p>
+                      {order.razorpayPaymentId && (
+                        <p className="mt-1 text-[11px] font-mono text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-xs border border-emerald-200 inline-block">
+                          Razorpay Txn: {order.razorpayPaymentId}
+                        </p>
+                      )}
                       <p className="mt-1">
                         {revealedOrders[order.id]
                           ? `${order.address?.address}, `
@@ -1860,9 +1883,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 />
               </div>
 
-              {/* Drop / Upload Image From Your Device */}
+              {/* Multiple Images Product Gallery Manager */}
               <DeviceImageUploader
                 images={editingProduct.images || []}
+                maxImages={12}
                 onChange={(updatedImages) => {
                   setEditingProduct({
                     ...editingProduct,

@@ -1,9 +1,31 @@
 import React, { useState, useEffect } from 'react';
-import { Check, ShieldCheck, ArrowRight, ShoppingBag, Truck, CreditCard, Tag, Sparkles } from 'lucide-react';
+import {
+  Check,
+  ShieldCheck,
+  ArrowRight,
+  ShoppingBag,
+  Truck,
+  CreditCard,
+  Tag,
+  Sparkles,
+  Lock,
+  Smartphone,
+  Building2,
+  AlertCircle,
+  ExternalLink,
+  Receipt,
+} from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { createOrder, subscribeCoupons, validateCouponCode } from '../firebase/db';
 import type { ShippingAddress, Coupon } from '../types';
+import {
+  loadRazorpayScript,
+  createRazorpayOrder,
+  verifyRazorpayPayment,
+  fetchRazorpayConfig,
+} from '../utils/razorpay';
+import { RazorpayModal } from '../components/RazorpayModal';
 
 interface CheckoutProps {
   onNavigate: (route: string, param?: string) => void;
@@ -26,7 +48,7 @@ export const Checkout: React.FC<CheckoutProps> = ({ onNavigate }) => {
     notes: '',
   });
 
-  const [paymentMethod, setPaymentMethod] = useState<'cod' | 'upi_transfer' | 'store_pickup'>('cod');
+  const [paymentMethod, setPaymentMethod] = useState<'razorpay' | 'upi_transfer' | 'store_pickup'>('razorpay');
   const [couponInput, setCouponInput] = useState(appliedCoupon?.code || '');
   const [couponError, setCouponError] = useState('');
   const [couponSuccess, setCouponSuccess] = useState(
@@ -35,6 +57,16 @@ export const Checkout: React.FC<CheckoutProps> = ({ onNavigate }) => {
   const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderCompleteId, setOrderCompleteId] = useState<string | null>(null);
+  const [verifiedPaymentData, setVerifiedPaymentData] = useState<{
+    paymentId: string;
+    orderId: string;
+  } | null>(null);
+
+  // In-app Razorpay modal state
+  const [isRazorpayModalOpen, setIsRazorpayModalOpen] = useState(false);
+  const [activeRazorpayOrderId, setActiveRazorpayOrderId] = useState('');
+  const [isSandboxMode, setIsSandboxMode] = useState(false);
+  const [checkoutError, setCheckoutError] = useState('');
 
   const [couponsList, setCouponsList] = useState<Coupon[]>([]);
 
@@ -151,54 +183,238 @@ export const Checkout: React.FC<CheckoutProps> = ({ onNavigate }) => {
     setCouponError('');
   };
 
-  const handleSubmitOrder = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (items.length === 0) return;
+  /**
+   * Finalizes the order in Firestore upon verified payment
+   */
+  const handleFinalizeVerifiedOrder = async (
+    razorpayDetails?: {
+      paymentId: string;
+      orderId: string;
+      signature: string;
+    }
+  ) => {
+    const isOnlinePaid = Boolean(razorpayDetails?.paymentId);
 
-    // Validation
-    if (!formData.customerName || !formData.phone || !formData.address || !formData.pincode) {
-      alert('Please fill in all mandatory shipping address fields.');
-      return;
+    const orderPayload: any = {
+      customerId: user?.uid || 'guest',
+      customerName: formData.customerName,
+      phone: formData.phone,
+      email: formData.email || 'customer@houseofrehaan.com',
+      items,
+      subtotal,
+      discount: discountAmount,
+      deliveryFee,
+      totalAmount: total,
+      paymentMethod,
+      paymentStatus: isOnlinePaid ? 'Paid' : 'Pending',
+      orderStatus: 'Confirmed',
+      address: formData,
+      notes: formData.notes || '',
+    };
+
+    if (appliedCoupon?.code) {
+      orderPayload.couponCode = appliedCoupon.code;
     }
 
+    if (razorpayDetails?.paymentId) {
+      orderPayload.razorpayPaymentId = razorpayDetails.paymentId;
+    }
+    if (razorpayDetails?.orderId) {
+      orderPayload.razorpayOrderId = razorpayDetails.orderId;
+    }
+    if (razorpayDetails?.signature) {
+      orderPayload.razorpaySignature = razorpayDetails.signature;
+    }
+
+    const orderId = await createOrder(orderPayload);
+
+    if (razorpayDetails) {
+      setVerifiedPaymentData({
+        paymentId: razorpayDetails.paymentId,
+        orderId: razorpayDetails.orderId,
+      });
+    }
+
+    clearCart();
+    setOrderCompleteId(orderId);
+  };
+
+  /**
+   * Callback invoked from Razorpay SDK or in-app secure modal
+   */
+  const handleRazorpaySuccessCallback = async (response: {
+    razorpay_order_id: string;
+    razorpay_payment_id: string;
+    razorpay_signature: string;
+  }) => {
     setIsSubmitting(true);
+    setCheckoutError('');
+
     try {
-      const orderId = await createOrder({
-        customerId: user?.uid || 'guest',
-        customerName: formData.customerName,
-        phone: formData.phone,
-        email: formData.email || 'customer@houseofrehaan.com',
-        items,
-        subtotal,
-        discount: discountAmount,
-        couponCode: appliedCoupon?.code,
-        deliveryFee,
-        totalAmount: total,
-        paymentMethod,
-        paymentStatus: paymentMethod === 'cod' ? 'Pending' : 'Pending',
-        orderStatus: 'Confirmed',
-        address: formData,
-        notes: formData.notes,
+      // 1. Cryptographic HMAC SHA-256 verification on backend
+      const verification = await verifyRazorpayPayment(response);
+
+      if (!verification.verified) {
+        throw new Error(
+          verification.error ||
+            'Razorpay cryptographic signature verification failed. Transaction was not confirmed.'
+        );
+      }
+
+      // 2. Persist confirmed order to Firestore with payment proof
+      await handleFinalizeVerifiedOrder({
+        paymentId: response.razorpay_payment_id,
+        orderId: response.razorpay_order_id,
+        signature: response.razorpay_signature,
       });
 
-      clearCart();
-      setOrderCompleteId(orderId);
-    } catch (err) {
-      console.error('Order placement failed:', err);
-      alert('We encountered an issue placing your order. Please try again or reach out on WhatsApp.');
+      setIsRazorpayModalOpen(false);
+    } catch (err: any) {
+      console.error('Razorpay verification or order completion error:', err);
+      setCheckoutError(
+        err?.message ||
+          'Payment verification could not be validated. Please reach out with your payment transaction ID.'
+      );
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const handleSubmitOrder = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCheckoutError('');
+
+    if (items.length === 0) return;
+
+    // Field Validations
+    if (!formData.customerName.trim()) {
+      setCheckoutError('Please enter your full name for order dispatch.');
+      return;
+    }
+    if (!formData.phone.trim() || formData.phone.replace(/\D/g, '').length < 10) {
+      setCheckoutError('Please provide a valid 10-digit phone number for shipment coordination.');
+      return;
+    }
+    if (!formData.email.trim() || !formData.email.includes('@')) {
+      setCheckoutError('Please enter a valid email address to receive order updates and receipts.');
+      return;
+    }
+    if (!formData.address.trim() || !formData.pincode.trim()) {
+      setCheckoutError('Please complete your street delivery address and 6-digit postal pincode.');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      if (paymentMethod === 'razorpay') {
+        // --- RAZORPAY PAYMENT FLOW ---
+        // 1. Create order on backend
+        const orderResult = await createRazorpayOrder({
+          amount: total,
+          customer: {
+            name: formData.customerName,
+            email: formData.email,
+            phone: formData.phone,
+          },
+          notes: {
+            address: formData.address,
+            city: formData.city,
+            pincode: formData.pincode,
+          },
+        });
+
+        if (!orderResult.success || !orderResult.orderId) {
+          throw new Error(orderResult.error || 'Unable to create order with Razorpay gateway.');
+        }
+
+        setActiveRazorpayOrderId(orderResult.orderId);
+        setIsSandboxMode(Boolean(orderResult.isSandbox));
+
+        // 2. Try loading official Razorpay checkout script
+        const scriptLoaded = await loadRazorpayScript();
+
+        if (scriptLoaded && window.Razorpay) {
+          const config = await fetchRazorpayConfig();
+
+          const rzpOptions = {
+            key: orderResult.keyId || config.keyId,
+            amount: orderResult.amount,
+            currency: orderResult.currency || 'INR',
+            name: 'House Of Rehaan',
+            description: `Boutique Order (${items.length} ${items.length === 1 ? 'item' : 'items'})`,
+            image: '/logo.jpg',
+            order_id: orderResult.orderId,
+            handler: function (response: any) {
+              handleRazorpaySuccessCallback(response);
+            },
+            prefill: {
+              name: formData.customerName,
+              email: formData.email,
+              contact: formData.phone,
+            },
+            notes: {
+              address: `${formData.address}, ${formData.city} - ${formData.pincode}`,
+              store: 'House Of Rehaan, Trichy',
+            },
+            theme: {
+              color: '#292522',
+            },
+            modal: {
+              ondismiss: function () {
+                setIsSubmitting(false);
+              },
+            },
+          };
+
+          try {
+            const rzp = new window.Razorpay(rzpOptions);
+            rzp.on('payment.failed', function (resp: any) {
+              console.error('Razorpay payment failure:', resp.error);
+              setCheckoutError(
+                resp?.error?.description || 'Payment was declined by bank. Please try another card or UPI.'
+              );
+              setIsSubmitting(false);
+            });
+            rzp.open();
+            setIsSubmitting(false);
+            return;
+          } catch (launchErr) {
+            console.warn('Official Razorpay modal popup blocked or failed, launching in-app secure modal:', launchErr);
+            // Fallback to secure in-app modal
+            setIsRazorpayModalOpen(true);
+            setIsSubmitting(false);
+            return;
+          }
+        } else {
+          // External script blocked or unavailable, open secure in-app modal
+          setIsRazorpayModalOpen(true);
+          setIsSubmitting(false);
+          return;
+        }
+      } else {
+        // --- COD, DIRECT UPI, OR STORE PICKUP FLOW ---
+        await handleFinalizeVerifiedOrder();
+      }
+    } catch (err: any) {
+      console.error('Order submission failed:', err);
+      setCheckoutError(
+        err?.message || 'We encountered an issue placing your order. Please try again or reach out on WhatsApp.'
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // SUCCESS CONFIRMATION VIEW
   if (orderCompleteId) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-20 text-center space-y-6">
-        <div className="w-16 h-16 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center mx-auto">
+      <div className="max-w-2xl mx-auto px-4 py-16 sm:py-20 text-center space-y-6">
+        <div className="w-16 h-16 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center mx-auto shadow-xs">
           <Check className="w-8 h-8" />
         </div>
-        <span className="text-xs uppercase tracking-widest text-[#9A8568] font-semibold">
-          Order Received
+        <span className="text-xs uppercase tracking-widest text-[#9A8568] font-semibold block">
+          Order Confirmed & Secured
         </span>
         <h1 className="font-editorial text-3xl sm:text-4xl text-[#292522]">
           Thank you for choosing House Of Rehaan
@@ -209,33 +425,81 @@ export const Checkout: React.FC<CheckoutProps> = ({ onNavigate }) => {
           <strong className="text-[#292522]">{formData.email}</strong>.
         </p>
 
-        <div className="p-5 bg-white border border-[#E9DFD0] rounded-md text-left text-xs max-w-sm mx-auto space-y-2">
-          <div className="flex justify-between">
+        {/* Verified Payment Seal if Razorpay */}
+        {verifiedPaymentData && (
+          <div className="p-4 bg-emerald-50/80 border border-emerald-200 rounded-md text-emerald-900 text-xs max-w-sm mx-auto space-y-1">
+            <div className="flex items-center justify-center gap-1.5 font-semibold text-emerald-800">
+              <ShieldCheck className="w-4 h-4 text-emerald-600" />
+              <span>Razorpay Verified Transaction</span>
+            </div>
+            <p className="font-mono text-[11px] text-emerald-700">
+              Payment ID: {verifiedPaymentData.paymentId}
+            </p>
+          </div>
+        )}
+
+        {/* Order Details Summary Box */}
+        <div className="p-5 bg-white border border-[#E9DFD0] rounded-md text-left text-xs max-w-sm mx-auto space-y-2.5 shadow-2xs">
+          <div className="flex justify-between pb-2 border-b border-[#E9DFD0]">
             <span className="text-[#766F68]">Order Reference:</span>
             <span className="font-mono font-bold text-[#292522]">
               #{orderCompleteId.slice(0, 8).toUpperCase()}
             </span>
           </div>
           <div className="flex justify-between">
-            <span className="text-[#766F68]">Total Paid / Due:</span>
+            <span className="text-[#766F68]">Total Amount:</span>
             <span className="font-bold text-[#292522]">₹{total.toLocaleString('en-IN')}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-[#766F68]">Payment Mode:</span>
-            <span className="capitalize text-[#292522]">{paymentMethod.replace('_', ' ')}</span>
+            <span className="font-medium text-[#292522] uppercase tracking-wider text-[11px]">
+              {paymentMethod === 'razorpay' ? 'Razorpay Secure Online' : paymentMethod.replace('_', ' ')}
+            </span>
           </div>
+          <div className="flex justify-between">
+            <span className="text-[#766F68]">Payment Status:</span>
+            <span
+              className={`font-semibold px-2 py-0.5 rounded-xs text-[10px] ${
+                paymentMethod === 'razorpay'
+                  ? 'bg-emerald-100 text-emerald-800'
+                  : 'bg-amber-100 text-amber-800'
+              }`}
+            >
+              {paymentMethod === 'razorpay' ? 'PAID & VERIFIED' : 'PENDING ON DELIVERY'}
+            </span>
+          </div>
+          <div className="flex justify-between pt-2 border-t border-[#E9DFD0] text-[#766F68]">
+            <span>Delivery Destination:</span>
+            <span className="font-medium text-[#292522] text-right truncate max-w-[170px]">
+              {formData.city}, {formData.pincode}
+            </span>
+          </div>
+        </div>
+
+        {/* Boutique Location for Trichy Store */}
+        <div className="pt-2 text-xs text-[#766F68]">
+          <span>Visiting our boutique in person?</span>{' '}
+          <a
+            href="https://maps.app.goo.gl/mLggnqsck5AnXRRN6"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[#9A8568] hover:underline font-semibold inline-flex items-center gap-1"
+          >
+            <span>Get Directions to House Of Rehaan (Trichy)</span>
+            <ExternalLink className="w-3 h-3" />
+          </a>
         </div>
 
         <div className="pt-4 flex flex-wrap justify-center gap-4">
           <button
             onClick={() => onNavigate('orders')}
-            className="px-6 py-3 bg-[#292522] hover:bg-[#9A8568] text-white text-xs uppercase tracking-widest font-semibold rounded-xs transition-colors"
+            className="px-6 py-3 bg-[#292522] hover:bg-[#9A8568] text-white text-xs uppercase tracking-widest font-semibold rounded-xs transition-colors cursor-pointer"
           >
             Track Order Status
           </button>
           <button
             onClick={() => onNavigate('shop')}
-            className="px-6 py-3 border border-[#E9DFD0] text-[#292522] text-xs uppercase tracking-widest font-semibold rounded-xs hover:bg-white transition-colors"
+            className="px-6 py-3 border border-[#E9DFD0] text-[#292522] text-xs uppercase tracking-widest font-semibold rounded-xs hover:bg-white transition-colors cursor-pointer"
           >
             Continue Shopping
           </button>
@@ -244,6 +508,7 @@ export const Checkout: React.FC<CheckoutProps> = ({ onNavigate }) => {
     );
   }
 
+  // EMPTY BAG VIEW
   if (items.length === 0) {
     return (
       <div className="max-w-md mx-auto py-24 px-4 text-center space-y-4">
@@ -252,7 +517,7 @@ export const Checkout: React.FC<CheckoutProps> = ({ onNavigate }) => {
         <p className="text-xs text-[#766F68]">Please add items from our boutique before checking out.</p>
         <button
           onClick={() => onNavigate('shop')}
-          className="px-6 py-2.5 bg-[#292522] text-white text-xs uppercase tracking-wider rounded-xs"
+          className="px-6 py-2.5 bg-[#292522] text-white text-xs uppercase tracking-wider rounded-xs cursor-pointer hover:bg-[#9A8568] transition-colors"
         >
           Explore Collection
         </button>
@@ -262,16 +527,49 @@ export const Checkout: React.FC<CheckoutProps> = ({ onNavigate }) => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 pb-20">
-      <h1 className="font-editorial text-3xl text-[#292522] mb-8">Checkout & Delivery Details</h1>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-6 mb-8 border-b border-[#E9DFD0] gap-4">
+        <div>
+          <span className="text-xs uppercase tracking-widest text-[#9A8568] font-semibold block">
+            House Of Rehaan • Trichy Boutique
+          </span>
+          <h1 className="font-editorial text-3xl sm:text-4xl text-[#292522] mt-1">
+            Secure Checkout & Delivery
+          </h1>
+        </div>
+
+        <div className="flex items-center gap-3 text-xs text-[#766F68]">
+          <div className="flex items-center gap-1.5 text-emerald-700 font-semibold bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-200">
+            <ShieldCheck className="w-4 h-4" />
+            <span>256-Bit SSL Encrypted</span>
+          </div>
+          <div className="hidden md:flex items-center gap-1.5 font-medium">
+            <Lock className="w-3.5 h-3.5 text-[#9A8568]" />
+            <span></span>
+          </div>
+        </div>
+      </div>
+
+      {checkoutError && (
+        <div className="mb-6 p-4 bg-rose-50 border border-rose-200 rounded-sm text-xs text-rose-700 flex items-start gap-2.5">
+          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-600" />
+          <div className="space-y-1">
+            <strong className="block font-semibold">Please check the required information:</strong>
+            <p>{checkoutError}</p>
+          </div>
+        </div>
+      )}
 
       <form onSubmit={handleSubmitOrder} className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-        {/* Left Form: Shipping Address & Payment */}
+        {/* Left Form: Shipping Address & Payment Selection */}
         <div className="lg:col-span-7 space-y-8">
           {/* Customer & Shipping Section */}
           <div className="bg-white p-6 rounded-md border border-[#E9DFD0] space-y-4 shadow-2xs">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-[#9A8568]">
-              1. Delivery Address
-            </h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-[#9A8568]">
+                1. Delivery & Contact Details
+              </h3>
+              <span className="text-[11px] text-[#766F68]">* Required fields</span>
+            </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
@@ -282,7 +580,10 @@ export const Checkout: React.FC<CheckoutProps> = ({ onNavigate }) => {
                   type="text"
                   required
                   value={formData.customerName}
-                  onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
+                  onChange={(e) => {
+                    setFormData({ ...formData, customerName: e.target.value });
+                    if (checkoutError) setCheckoutError('');
+                  }}
                   placeholder="e.g. Priya Sundaram"
                   className="w-full text-xs p-3 border border-[#E9DFD0] rounded-xs focus:border-[#9A8568] focus:outline-hidden"
                 />
@@ -290,28 +591,34 @@ export const Checkout: React.FC<CheckoutProps> = ({ onNavigate }) => {
 
               <div>
                 <label className="block text-xs font-medium text-[#292522] mb-1">
-                  Phone Number *
+                  Phone Number (for Courier & OTP) *
                 </label>
                 <input
                   type="tel"
                   required
                   value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  onChange={(e) => {
+                    setFormData({ ...formData, phone: e.target.value });
+                    if (checkoutError) setCheckoutError('');
+                  }}
                   placeholder="10-digit mobile number"
-                  className="w-full text-xs p-3 border border-[#E9DFD0] rounded-xs focus:border-[#9A8568] focus:outline-hidden"
+                  className="w-full text-xs p-3 border border-[#E9DFD0] rounded-xs font-mono focus:border-[#9A8568] focus:outline-hidden"
                 />
               </div>
             </div>
 
             <div>
               <label className="block text-xs font-medium text-[#292522] mb-1">
-                Email Address (for order updates & receipts) *
+                Email Address (for Order Receipt & Verification) *
               </label>
               <input
                 type="email"
                 required
                 value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                onChange={(e) => {
+                  setFormData({ ...formData, email: e.target.value });
+                  if (checkoutError) setCheckoutError('');
+                }}
                 placeholder="name@example.com"
                 className="w-full text-xs p-3 border border-[#E9DFD0] rounded-xs focus:border-[#9A8568] focus:outline-hidden"
               />
@@ -325,7 +632,10 @@ export const Checkout: React.FC<CheckoutProps> = ({ onNavigate }) => {
                 required
                 rows={2}
                 value={formData.address}
-                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                onChange={(e) => {
+                  setFormData({ ...formData, address: e.target.value });
+                  if (checkoutError) setCheckoutError('');
+                }}
                 placeholder="Door no., Apartment, Street name, Landmark"
                 className="w-full text-xs p-3 border border-[#E9DFD0] rounded-xs focus:border-[#9A8568] focus:outline-hidden"
               />
@@ -367,8 +677,12 @@ export const Checkout: React.FC<CheckoutProps> = ({ onNavigate }) => {
                 <input
                   type="text"
                   required
+                  maxLength={6}
                   value={formData.pincode}
-                  onChange={(e) => setFormData({ ...formData, pincode: e.target.value })}
+                  onChange={(e) => {
+                    setFormData({ ...formData, pincode: e.target.value.replace(/\D/g, '') });
+                    if (checkoutError) setCheckoutError('');
+                  }}
                   className="w-full text-xs p-2.5 border border-[#E9DFD0] rounded-xs font-mono"
                 />
               </div>
@@ -390,40 +704,83 @@ export const Checkout: React.FC<CheckoutProps> = ({ onNavigate }) => {
 
           {/* Payment Method Section */}
           <div className="bg-white p-6 rounded-md border border-[#E9DFD0] space-y-4 shadow-2xs">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-[#9A8568]">
-              2. Payment Method
-            </h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-[#9A8568]">
+                2. Select Payment Method
+              </h3>
+              <span className="text-[11px] text-emerald-700 flex items-center gap-1 font-medium">
+                <Lock className="w-3 h-3" />
+                <span>Zero Transaction Surcharge</span>
+              </span>
+            </div>
 
             <div className="space-y-3">
+              {/* 1. RAZORPAY SECURE (RECOMMENDED) */}
               <label
-                className={`flex items-start gap-3 p-3.5 border rounded-xs cursor-pointer transition-colors ${
-                  paymentMethod === 'cod'
-                    ? 'border-[#9A8568] bg-[#FAF8F4]'
-                    : 'border-[#E9DFD0] bg-white'
+                className={`flex items-start gap-3.5 p-4 border rounded-xs cursor-pointer transition-all ${
+                  paymentMethod === 'razorpay'
+                    ? 'border-[#9A8568] bg-[#FAF8F4] ring-1 ring-[#9A8568]/30 shadow-xs'
+                    : 'border-[#E9DFD0] bg-white hover:bg-[#FAF8F4]/50'
                 }`}
               >
                 <input
                   type="radio"
                   name="payment"
-                  checked={paymentMethod === 'cod'}
-                  onChange={() => setPaymentMethod('cod')}
-                  className="mt-0.5 accent-[#9A8568]"
+                  checked={paymentMethod === 'razorpay'}
+                  onChange={() => setPaymentMethod('razorpay')}
+                  className="mt-1 accent-[#9A8568] cursor-pointer"
                 />
-                <div>
-                  <span className="text-xs font-semibold text-[#292522] block">
-                    Cash on Delivery (COD)
-                  </span>
-                  <span className="text-[11px] text-[#766F68]">
-                    Pay cash or UPI to the courier agent upon receiving your package.
-                  </span>
+                <div className="flex-1 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-[#292522] flex items-center gap-2">
+                      <span>Razorpay Secure (Cards, UPI, NetBanking, Wallets)</span>
+                      <span className="text-[10px] bg-emerald-100 text-emerald-800 font-semibold px-2 py-0.5 rounded-full border border-emerald-200">
+                        Recommended
+                      </span>
+                    </span>
+                    <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                  </div>
+                  <p className="text-[11px] text-[#766F68] leading-relaxed">
+                    Instant authorization with GPay, PhonePe, Paytm, Credit/Debit cards (Visa, MasterCard, RuPay), and NetBanking. Protected with 256-bit SSL and server-side HMAC SHA-256 verification.
+                  </p>
+                  <div className="pt-1 flex items-center gap-2 text-[10px] text-[#9A8568] font-medium">
+                    <span className="flex items-center gap-1">
+                      <Smartphone className="w-3 h-3" />
+                      UPI
+                    </span>
+                    <span>•</span>
+                    <span className="flex items-center gap-1">
+                      <CreditCard className="w-3 h-3" />
+                      Cards
+                    </span>
+                    <span>•</span>
+                    <span className="flex items-center gap-1">
+                      <Building2 className="w-3 h-3" />
+                      NetBanking
+                    </span>
+                  </div>
                 </div>
               </label>
 
+              {/* CLEAR NO CASH ON DELIVERY (COD) POLICY NOTICE */}
+              <div className="p-4 bg-amber-50/80 border border-amber-200 rounded-xs flex items-start gap-3 text-xs">
+                <AlertCircle className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <span className="font-semibold text-[#292522] block tracking-wide">
+                    No Cash on Delivery (COD) Available
+                  </span>
+                  <p className="text-[#766F68] text-[11px] leading-relaxed">
+                    House Of Rehaan accepts <strong>100% prepaid orders only</strong> to guarantee authentic boutique dispatch directly from our Trichy workshop and prevent courier transit delays. We do not provide Cash on Delivery (COD). Please choose Razorpay (UPI / Cards / NetBanking), direct UPI transfer, or in-person boutique collection.
+                  </p>
+                </div>
+              </div>
+
+              {/* 2. DIRECT UPI / BANK TRANSFER */}
               <label
-                className={`flex items-start gap-3 p-3.5 border rounded-xs cursor-pointer transition-colors ${
+                className={`flex items-start gap-3.5 p-3.5 border rounded-xs cursor-pointer transition-colors ${
                   paymentMethod === 'upi_transfer'
                     ? 'border-[#9A8568] bg-[#FAF8F4]'
-                    : 'border-[#E9DFD0] bg-white'
+                    : 'border-[#E9DFD0] bg-white hover:bg-[#FAF8F4]/50'
                 }`}
               >
                 <input
@@ -431,23 +788,24 @@ export const Checkout: React.FC<CheckoutProps> = ({ onNavigate }) => {
                   name="payment"
                   checked={paymentMethod === 'upi_transfer'}
                   onChange={() => setPaymentMethod('upi_transfer')}
-                  className="mt-0.5 accent-[#9A8568]"
+                  className="mt-0.5 accent-[#9A8568] cursor-pointer"
                 />
                 <div>
                   <span className="text-xs font-semibold text-[#292522] block">
-                    Direct UPI / Bank Transfer
+                    Manual UPI / Boutique Bank Transfer
                   </span>
                   <span className="text-[11px] text-[#766F68]">
-                    Pay via GPay, PhonePe, or Paytm (+91 9790478436) after placing order.
+                    Direct transfer to House Of Rehaan boutique accounts (+91 9790478436) after placing order.
                   </span>
                 </div>
               </label>
 
+              {/* 4. BOUTIQUE STORE PICKUP */}
               <label
-                className={`flex items-start gap-3 p-3.5 border rounded-xs cursor-pointer transition-colors ${
+                className={`flex items-start gap-3.5 p-3.5 border rounded-xs cursor-pointer transition-colors ${
                   paymentMethod === 'store_pickup'
                     ? 'border-[#9A8568] bg-[#FAF8F4]'
-                    : 'border-[#E9DFD0] bg-white'
+                    : 'border-[#E9DFD0] bg-white hover:bg-[#FAF8F4]/50'
                 }`}
               >
                 <input
@@ -455,7 +813,7 @@ export const Checkout: React.FC<CheckoutProps> = ({ onNavigate }) => {
                   name="payment"
                   checked={paymentMethod === 'store_pickup'}
                   onChange={() => setPaymentMethod('store_pickup')}
-                  className="mt-0.5 accent-[#9A8568]"
+                  className="mt-0.5 accent-[#9A8568] cursor-pointer"
                 />
                 <div>
                   <span className="text-xs font-semibold text-[#292522] block">
@@ -514,7 +872,7 @@ export const Checkout: React.FC<CheckoutProps> = ({ onNavigate }) => {
 
             {/* Coupon input */}
             <div className="pt-3 border-t border-[#E9DFD0] space-y-2.5">
-              <label className="block text-xs font-semibold text-[#292522] flex items-center justify-between">
+              <label className="text-xs font-semibold text-[#292522] flex items-center justify-between">
                 <span className="flex items-center gap-1.5">
                   <Tag className="w-3.5 h-3.5 text-[#9A8568]" />
                   <span>Have a Promo or Coupon Code?</span>
@@ -540,7 +898,7 @@ export const Checkout: React.FC<CheckoutProps> = ({ onNavigate }) => {
                       handleApplyCoupon();
                     }
                   }}
-                  placeholder="Enter coupon code (e.g. WELCOME10)"
+                  placeholder="Enter code (e.g. WELCOME10)"
                   className="flex-1 text-xs p-2.5 border border-[#E9DFD0] rounded-xs uppercase tracking-wider font-mono font-medium focus:outline-hidden focus:border-[#9A8568]"
                 />
                 <button
@@ -559,43 +917,32 @@ export const Checkout: React.FC<CheckoutProps> = ({ onNavigate }) => {
                 </div>
               )}
 
-              {appliedCoupon && (
-                <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-xs flex items-center justify-between text-xs text-emerald-800">
-                  <div className="flex items-center gap-1.5 font-semibold">
-                    <span className="bg-emerald-200 text-emerald-900 px-2 py-0.5 rounded-xs font-mono text-[11px] tracking-wider">
-                      {appliedCoupon.code}
-                    </span>
-                    <span>
-                      {appliedCoupon.discountType === 'percentage'
-                        ? `${appliedCoupon.discountValue}% OFF`
-                        : `₹${appliedCoupon.discountValue} Flat OFF`}{' '}
-                      applied (-₹{discountAmount.toLocaleString('en-IN')})
-                    </span>
-                  </div>
+              {couponSuccess && (
+                <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-xs text-[11px] text-emerald-700 flex items-center justify-between">
+                  <span>{couponSuccess}</span>
                   <button
                     type="button"
                     onClick={handleRemoveCoupon}
-                    className="text-xs text-rose-600 hover:text-rose-800 font-semibold underline cursor-pointer ml-2"
+                    className="text-[10px] font-semibold text-rose-600 hover:underline ml-2 cursor-pointer"
                   >
                     Remove
                   </button>
                 </div>
               )}
 
-              {/* Available Boutique Offers Chips */}
-              {couponsList.filter((c) => c.active && (!appliedCoupon || appliedCoupon.code !== c.code)).length > 0 && (
-                <div className="pt-1.5 space-y-1.5">
-                  <span className="text-[10px] font-semibold text-[#766F68] uppercase tracking-wider flex items-center gap-1">
-                    <Sparkles className="w-3 h-3 text-[#9A8568]" />
-                    <span>Available Store Offers (Click to apply):</span>
+              {/* Available active coupon suggestion pill */}
+              {couponsList.length > 0 && !appliedCoupon && (
+                <div className="pt-1">
+                  <span className="text-[10px] text-[#766F68] block mb-1">
+                    Available boutique offers:
                   </span>
                   <div className="flex flex-wrap gap-1.5">
                     {couponsList
-                      .filter((c) => c.active && (!appliedCoupon || appliedCoupon.code !== c.code))
+                      .filter((c) => c.active !== false)
                       .slice(0, 3)
                       .map((c) => (
                         <button
-                          key={c.id || c.code}
+                          key={c.code}
                           type="button"
                           onClick={() => handleApplyCoupon(c.code)}
                           className="text-[10px] bg-[#FAF8F4] hover:bg-[#E9DFD0] text-[#292522] border border-[#E9DFD0] px-2 py-1 rounded-xs flex items-center gap-1 font-medium transition-colors cursor-pointer"
@@ -650,7 +997,13 @@ export const Checkout: React.FC<CheckoutProps> = ({ onNavigate }) => {
               className="w-full py-4 bg-[#292522] hover:bg-[#9A8568] text-white text-xs font-semibold uppercase tracking-widest rounded-xs flex items-center justify-center gap-2 transition-all shadow-md cursor-pointer disabled:bg-zinc-400"
             >
               {isSubmitting ? (
-                <span>Securing Order...</span>
+                <span>Securing Transaction...</span>
+              ) : paymentMethod === 'razorpay' ? (
+                <>
+                  <Lock className="w-4 h-4 text-[#C2B5A5]" />
+                  <span>Pay with Razorpay (₹{total.toLocaleString('en-IN')})</span>
+                  <ArrowRight className="w-4 h-4" />
+                </>
               ) : (
                 <>
                   <span>Place Order (₹{total.toLocaleString('en-IN')})</span>
@@ -659,13 +1012,35 @@ export const Checkout: React.FC<CheckoutProps> = ({ onNavigate }) => {
               )}
             </button>
 
-            <div className="flex items-center justify-center gap-2 text-[11px] text-[#766F68] pt-1">
-              <ShieldCheck className="w-4 h-4 text-emerald-600" />
-              <span>Encrypted checkout & authentic direct boutique fulfillment.</span>
+            <div className="flex flex-col items-center justify-center gap-1.5 text-[11px] text-[#766F68] pt-1 text-center border-t border-[#E9DFD0]">
+              <div className="flex items-center gap-1.5 text-emerald-700 font-medium">
+                <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                <span>HMAC SHA-256 Verified Payment Gateway</span>
+              </div>
+              <div className="flex items-center gap-1 text-[11px] font-semibold text-[#9A8568]">
+                <span>100% Prepaid Orders Only • No Cash on Delivery (COD)</span>
+              </div>
+              <span>Encrypted checkout & authentic direct boutique fulfillment from Trichy.</span>
             </div>
           </div>
         </div>
       </form>
+
+      {/* In-App Razorpay Modal for test sandbox or fallback */}
+      <RazorpayModal
+        isOpen={isRazorpayModalOpen}
+        orderId={activeRazorpayOrderId}
+        amount={total}
+        customerName={formData.customerName}
+        customerEmail={formData.email}
+        customerPhone={formData.phone}
+        isSandbox={isSandboxMode}
+        onSuccess={handleRazorpaySuccessCallback}
+        onClose={() => {
+          setIsRazorpayModalOpen(false);
+          setIsSubmitting(false);
+        }}
+      />
     </div>
   );
 };

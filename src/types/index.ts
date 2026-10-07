@@ -154,8 +154,11 @@ export interface Order {
   couponCode?: string;
   deliveryFee: number;
   totalAmount: number;
-  paymentMethod: 'cod' | 'upi_transfer' | 'store_pickup' | 'online';
+  paymentMethod: 'cod' | 'upi_transfer' | 'store_pickup' | 'online' | 'razorpay';
   paymentStatus: 'Pending' | 'Paid' | 'Failed';
+  razorpayPaymentId?: string;
+  razorpayOrderId?: string;
+  razorpaySignature?: string;
   orderStatus: OrderStatus;
   address: ShippingAddress;
   notes?: string;

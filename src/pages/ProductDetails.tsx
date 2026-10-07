@@ -164,15 +164,15 @@ export const ProductDetails: React.FC<ProductDetailsProps> = ({
               onClick={() => setFullscreenImage(galleryImages[activeImageIndex])}
             />
 
-            {/* Badges */}
-            <div className="absolute top-4 left-4 flex flex-col gap-2">
+            {/* Badges - Compact on mobile */}
+            <div className="absolute top-2 left-2 sm:top-4 sm:left-4 flex flex-col gap-1 sm:gap-2 pointer-events-none">
               {product.salePrice && product.salePrice < product.price && (
-                <span className="bg-[#9A8568] text-white text-xs font-semibold px-3 py-1 uppercase tracking-wider rounded-xs">
+                <span className="bg-[#9A8568] text-white text-[9px] sm:text-xs font-semibold px-2 py-0.5 sm:px-3 sm:py-1 uppercase tracking-wider rounded-xs shadow-2xs">
                   SALE {product.discountPercentage ? `-${product.discountPercentage}%` : ''}
                 </span>
               )}
               {isOutOfStock && (
-                <span className="bg-[#292522]/90 text-white text-xs px-3 py-1 uppercase tracking-wider rounded-xs">
+                <span className="bg-[#292522]/90 text-white text-[9px] sm:text-xs px-2 py-0.5 sm:px-3 sm:py-1 uppercase tracking-wider rounded-xs shadow-2xs">
                   Out of Stock
                 </span>
               )}

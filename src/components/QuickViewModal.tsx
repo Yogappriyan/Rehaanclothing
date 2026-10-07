@@ -81,7 +81,7 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({
             className="w-full h-full object-cover object-center"
           />
           {product.salePrice && product.salePrice < product.price && (
-            <span className="absolute top-4 left-4 bg-[#9A8568] text-white text-[10px] font-semibold px-2.5 py-1 uppercase tracking-wider rounded-xs">
+            <span className="absolute top-2 left-2 sm:top-4 sm:left-4 bg-[#9A8568] text-white text-[8px] sm:text-[10px] font-semibold px-1.5 py-0.5 sm:px-2.5 sm:py-1 uppercase tracking-wider rounded-xs shadow-2xs">
               SALE
             </span>
           )}

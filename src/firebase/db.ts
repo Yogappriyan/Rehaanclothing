@@ -30,6 +30,35 @@ import type {
   ScheduledReport,
 } from '../types';
 
+// -------------------------------------------------------------
+// FIRESTORE SAFE WRITING UTILITY
+// -------------------------------------------------------------
+
+/**
+ * Recursively removes any undefined keys or nested undefined fields from an object
+ * to ensure Firestore addDoc/setDoc/updateDoc never fails with
+ * "Unsupported field value: undefined".
+ */
+export function removeUndefinedFields<T>(obj: T): T {
+  if (obj === null || obj === undefined || typeof obj !== 'object') {
+    return obj;
+  }
+  if (Array.isArray(obj)) {
+    return obj.map((item) => removeUndefinedFields(item)) as unknown as T;
+  }
+  const cleaned: Record<string, any> = {};
+  for (const [key, val] of Object.entries(obj)) {
+    if (val !== undefined) {
+      if (val !== null && typeof val === 'object' && !(val instanceof Date)) {
+        cleaned[key] = removeUndefinedFields(val);
+      } else {
+        cleaned[key] = val;
+      }
+    }
+  }
+  return cleaned as T;
+}
+
 export const DEFAULT_SETTINGS: BusinessSettings = {
   businessName: 'House Of Rehaan',
   storeName: 'House Of Rehaan',
@@ -246,20 +275,20 @@ export function subscribeProducts(callback: (products: Product[]) => void) {
 
 export async function addProduct(product: Omit<Product, 'id'>) {
   const col = collection(db, 'products');
-  const res = await addDoc(col, {
+  const res = await addDoc(col, removeUndefinedFields({
     ...product,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
-  });
+  }));
   return res.id;
 }
 
 export async function updateProduct(id: string, updates: Partial<Product>) {
   const ref = doc(db, 'products', id);
-  await updateDoc(ref, {
+  await updateDoc(ref, removeUndefinedFields({
     ...updates,
     updatedAt: new Date().toISOString(),
-  });
+  }));
 }
 
 export async function deleteProduct(id: string) {
@@ -489,11 +518,12 @@ export function subscribeSingleOrder(
 export async function createOrder(orderData: Omit<Order, 'id' | 'createdAt' | 'updatedAt'>) {
   const col = collection(db, 'orders');
   const now = new Date().toISOString();
-  const orderDoc = await addDoc(col, {
+  const cleanedOrderData = removeUndefinedFields({
     ...orderData,
     createdAt: now,
     updatedAt: now,
   });
+  const orderDoc = await addDoc(col, cleanedOrderData);
 
   // Automated notification record for customer & business
   try {
@@ -778,7 +808,7 @@ export async function addCoupon(coupon: Omit<Coupon, 'id'>) {
 
   try {
     const col = collection(db, 'coupons');
-    const docRef = await addDoc(col, couponData);
+    const docRef = await addDoc(col, removeUndefinedFields(couponData));
 
     const current = getStoredCoupons();
     const updated = [{ id: docRef.id, ...couponData }, ...current.filter((c) => c.code !== cleanCode)];
