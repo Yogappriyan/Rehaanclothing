@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Heart, Eye, ShoppingBag } from 'lucide-react';
 import { useWishlist } from '../context/WishlistContext';
 import { useCart } from '../context/CartContext';
+import { ImageWithFallback } from './ImageWithFallback';
 import type { Product, ProductSize } from '../types';
 
 interface ProductCardProps {
@@ -61,9 +62,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     >
       {/* Visual Image Container */}
       <div className="relative aspect-3/4 w-full overflow-hidden bg-[#F4EFE6]">
-        {/* Main image */}
-        <img
+        {/* Main continuous streaming image with zero CDN failure guarantee */}
+        <ImageWithFallback
           src={isHovered && hasMultipleImages ? secondaryImg : primaryImg}
+          fallbackSrc={primaryImg}
+          category={product.category}
+          productName={product.name}
           alt={product.name}
           loading="lazy"
           className={`h-full w-full object-cover object-center transition-all duration-700 ease-out ${

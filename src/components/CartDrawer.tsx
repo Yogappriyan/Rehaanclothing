@@ -1,7 +1,9 @@
-import React from 'react';
-import { X, Trash2, ShoppingBag, ArrowRight, Heart } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, Trash2, ShoppingBag, ArrowRight, Heart, Tag, Check, Sparkles } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
+import { validateCouponCode } from '../firebase/db';
+import { ImageWithFallback } from './ImageWithFallback';
 
 interface CartDrawerProps {
   onNavigate: (route: string) => void;
@@ -18,9 +20,49 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onNavigate }) => {
     discountAmount,
     deliveryFee,
     total,
+    appliedCoupon,
+    applyCoupon,
+    removeCoupon,
   } = useCart();
 
   const { toggleWishlist, isInWishlist } = useWishlist();
+  const [couponCode, setCouponCode] = useState(appliedCoupon?.code || '');
+  const [couponError, setCouponError] = useState('');
+  const [couponNotice, setCouponNotice] = useState('');
+  const [isApplying, setIsApplying] = useState(false);
+  const [isCouponExpanded, setIsCouponExpanded] = useState(false);
+
+  const handleDrawerApplyCoupon = async () => {
+    setCouponError('');
+    setCouponNotice('');
+    const code = couponCode.trim().toUpperCase();
+    if (!code) {
+      setCouponError('Please enter a coupon code.');
+      return;
+    }
+
+    setIsApplying(true);
+    try {
+      const c = await validateCouponCode(code);
+      if (!c || c.active === false) {
+        setCouponError(`Coupon "${code}" is invalid or expired.`);
+        return;
+      }
+
+      if (subtotal < (c.minimumOrder || 0)) {
+        setCouponError(`Min order of ₹${c.minimumOrder} required for ${code}.`);
+        return;
+      }
+
+      applyCoupon(c);
+      setCouponNotice(`Coupon ${code} applied successfully!`);
+      setIsCouponExpanded(false);
+    } catch {
+      setCouponError('Unable to apply coupon. Try again.');
+    } finally {
+      setIsApplying(false);
+    }
+  };
 
   if (!isCartOpen) return null;
 
@@ -80,9 +122,10 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onNavigate }) => {
                   key={`${item.productId}-${item.size}-${item.color}`}
                   className="flex gap-4 p-3 bg-white border border-[#E9DFD0]/80 rounded-md"
                 >
-                  {/* Item Image */}
-                  <img
+                  {/* Item Image with continuous fallback */}
+                  <ImageWithFallback
                     src={item.image}
+                    productName={item.productName}
                     alt={item.productName}
                     className="w-20 h-24 object-cover rounded-xs bg-[#F4EFE6] shrink-0"
                   />
@@ -175,6 +218,69 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onNavigate }) => {
           {/* Drawer Footer / Subtotal & Checkout */}
           {items.length > 0 && (
             <div className="p-5 border-t border-[#E9DFD0] bg-white space-y-3">
+              {/* Coupon Accordion / Input */}
+              <div className="border border-[#E9DFD0] rounded-xs p-2.5 bg-[#FAF8F4] space-y-2">
+                {appliedCoupon ? (
+                  <div className="flex items-center justify-between text-xs text-emerald-800">
+                    <div className="flex items-center gap-1.5 font-semibold">
+                      <Tag className="w-3.5 h-3.5 text-emerald-600" />
+                      <span className="font-mono bg-emerald-100 text-emerald-900 px-1.5 py-0.5 rounded-xs">
+                        {appliedCoupon.code}
+                      </span>
+                      <span>
+                        ({appliedCoupon.discountType === 'percentage'
+                          ? `${appliedCoupon.discountValue}% OFF`
+                          : `₹${appliedCoupon.discountValue} OFF`})
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => {
+                        removeCoupon();
+                        setCouponCode('');
+                        setCouponNotice('');
+                      }}
+                      className="text-[11px] text-rose-600 hover:text-rose-800 underline font-medium cursor-pointer"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ) : (
+                  <div>
+                    <div className="flex gap-1.5">
+                      <input
+                        type="text"
+                        value={couponCode}
+                        onChange={(e) => {
+                          setCouponCode(e.target.value.toUpperCase());
+                          setCouponError('');
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleDrawerApplyCoupon();
+                          }
+                        }}
+                        placeholder="Coupon code (e.g. WELCOME10)"
+                        className="flex-1 text-xs p-1.5 bg-white border border-[#E9DFD0] rounded-xs uppercase tracking-wider font-mono font-medium focus:outline-hidden"
+                      />
+                      <button
+                        onClick={handleDrawerApplyCoupon}
+                        disabled={isApplying || !couponCode.trim()}
+                        className="px-3 py-1.5 bg-[#292522] hover:bg-[#9A8568] text-white text-[11px] font-semibold uppercase tracking-wider rounded-xs cursor-pointer disabled:opacity-50"
+                      >
+                        {isApplying ? '...' : 'Apply'}
+                      </button>
+                    </div>
+                    {couponError && (
+                      <p className="text-[10px] text-rose-600 mt-1">{couponError}</p>
+                    )}
+                    {couponNotice && (
+                      <p className="text-[10px] text-emerald-700 mt-1">{couponNotice}</p>
+                    )}
+                  </div>
+                )}
+              </div>
+
               <div className="space-y-1.5 text-xs text-[#766F68]">
                 <div className="flex justify-between">
                   <span>Subtotal</span>
@@ -184,8 +290,8 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onNavigate }) => {
                 </div>
 
                 {discountAmount > 0 && (
-                  <div className="flex justify-between text-emerald-700">
-                    <span>Discount</span>
+                  <div className="flex justify-between text-emerald-700 font-medium">
+                    <span>Discount ({appliedCoupon?.code})</span>
                     <span>-₹{discountAmount.toLocaleString('en-IN')}</span>
                   </div>
                 )}
@@ -197,7 +303,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onNavigate }) => {
 
                 <div className="flex justify-between pt-2 border-t border-[#E9DFD0] text-sm font-semibold text-[#292522]">
                   <span>Estimated Total</span>
-                  <span>₹{total.toLocaleString('en-IN')}</span>
+                  <span className="text-base text-[#292522]">₹{total.toLocaleString('en-IN')}</span>
                 </div>
               </div>
 

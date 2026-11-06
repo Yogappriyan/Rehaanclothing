@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { SlidersHorizontal, X, ChevronDown, Check } from 'lucide-react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { SlidersHorizontal, X, ChevronDown, Check, ChevronRight } from 'lucide-react';
 import { ProductCard } from '../components/ProductCard';
 import type { Product, Category, ProductSize } from '../types';
 
@@ -21,6 +21,15 @@ export const Shop: React.FC<ShopProps> = ({
   const [selectedCategory, setSelectedCategory] = useState<string>(
     initialCategory || 'All'
   );
+
+  // Sync category filter when navigating from outside or URL params
+  useEffect(() => {
+    if (initialCategory) {
+      setSelectedCategory(initialCategory);
+    } else {
+      setSelectedCategory('All');
+    }
+  }, [initialCategory]);
   const [selectedSize, setSelectedSize] = useState<string>('All');
   const [selectedFabric, setSelectedFabric] = useState<string>('All');
   const [selectedOccasion, setSelectedOccasion] = useState<string>('All');
@@ -54,7 +63,7 @@ export const Shop: React.FC<ShopProps> = ({
   const filteredProducts = useMemo(() => {
     return products
       .filter((p) => {
-        if (p.status !== 'active') return false;
+        if (p.status === 'archived' || p.status === 'draft') return false;
 
         // Category matching by exact name or slug/normalized format
         if (selectedCategory !== 'All') {
@@ -141,14 +150,46 @@ export const Shop: React.FC<ShopProps> = ({
     priceRange < 10000;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 animate-in fade-in duration-300">
+      {/* Breadcrumb Navigation */}
+      <nav className="text-xs text-[#766F68] flex items-center gap-2 mb-6" aria-label="Breadcrumb">
+        <button
+          onClick={() => {
+            onNavigate('home');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          className="hover:text-[#292522] transition-colors cursor-pointer"
+        >
+          Home
+        </button>
+        <ChevronRight className="w-3.5 h-3.5 text-[#9A8568]" />
+        <button
+          onClick={() => {
+            setSelectedCategory('All');
+            onNavigate('shop');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          className={`hover:text-[#292522] transition-colors cursor-pointer ${
+            selectedCategory === 'All' ? 'text-[#292522] font-semibold' : ''
+          }`}
+        >
+          Shop
+        </button>
+        {selectedCategory !== 'All' && (
+          <>
+            <ChevronRight className="w-3.5 h-3.5 text-[#9A8568]" />
+            <span className="text-[#292522] font-semibold">{selectedCategory}</span>
+          </>
+        )}
+      </nav>
+
       {/* Top Header */}
       <div className="border-b border-[#E9DFD0] pb-8 mb-8">
         <span className="text-xs uppercase tracking-widest text-[#9A8568] font-semibold">
           House Of Rehaan
         </span>
         <h1 className="font-editorial text-3xl sm:text-4xl text-[#292522] mt-1 font-normal">
-          Shop Women's Collection
+          {selectedCategory !== 'All' ? `${selectedCategory} Collection` : "Shop Women's Collection"}
         </h1>
         <p className="text-xs sm:text-sm text-[#766F68] mt-2 max-w-xl">
           Carefully selected contemporary dresses, handcrafted kurtis, timeless sarees, and polished

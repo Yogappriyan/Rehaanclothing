@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ArrowRight, Sparkles, Compass, Truck, ShieldCheck, HeartHandshake, ChevronRight } from 'lucide-react';
 import { ProductCard } from '../components/ProductCard';
 import { HeroCarousel } from '../components/HeroCarousel';
+import { ImageWithFallback } from '../components/ImageWithFallback';
 import { getNormalizedCategoryKey } from '../firebase/db';
 import type { Product, Category, BusinessSettings, Review } from '../types';
 
@@ -24,9 +25,9 @@ export const Home: React.FC<HomeProps> = ({
 }) => {
   const [selectedOccasion, setSelectedOccasion] = useState<string>('All');
 
-  // Filter products
-  const newArrivals = products.filter((p) => p.newArrival && p.status === 'active');
-  const featuredProducts = products.filter((p) => p.featured && p.status === 'active');
+  // Filter products (accept any product not explicitly archived/draft)
+  const newArrivals = products.filter((p) => p.newArrival && p.status !== 'archived' && p.status !== 'draft');
+  const featuredProducts = products.filter((p) => p.featured && p.status !== 'archived' && p.status !== 'draft');
   
   // Strictly deduplicate active categories so every category is displayed exactly once
   const activeCategories = Array.from(
@@ -54,7 +55,7 @@ export const Home: React.FC<HomeProps> = ({
   const occasions = ['All', 'Everyday', 'Festive', 'Party', 'Casual'];
 
   const occasionProducts = products.filter((p) => {
-    if (p.status !== 'active') return false;
+    if (p.status === 'archived' || p.status === 'draft') return false;
     if (selectedOccasion === 'All') return true;
     return p.occasion?.toLowerCase().includes(selectedOccasion.toLowerCase());
   });
@@ -147,8 +148,9 @@ export const Home: React.FC<HomeProps> = ({
                 className="group relative flex flex-col rounded-t-[100px] sm:rounded-t-[140px] lg:rounded-t-[170px] rounded-b-2xl overflow-hidden bg-[#FAF8F4] border border-[#E9DFD0]/90 shadow-2xs hover:shadow-xl hover:border-[#9A8568]/50 transition-all duration-500 cursor-pointer"
               >
                 <div className="aspect-[3/4.4] w-full overflow-hidden bg-[#F4EFE6] relative">
-                  <img
+                  <ImageWithFallback
                     src={cat.image}
+                    category={cat.name}
                     alt={cat.name}
                     className="w-full h-full object-cover object-center transition-transform duration-700 ease-out group-hover:scale-108"
                     loading="lazy"

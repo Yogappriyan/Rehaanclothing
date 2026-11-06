@@ -26,6 +26,7 @@ import {
   fetchRazorpayConfig,
 } from '../utils/razorpay';
 import { RazorpayModal } from '../components/RazorpayModal';
+import { ImageWithFallback } from '../components/ImageWithFallback';
 
 interface CheckoutProps {
   onNavigate: (route: string, param?: string) => void;
@@ -544,7 +545,7 @@ export const Checkout: React.FC<CheckoutProps> = ({ onNavigate }) => {
           </div>
           <div className="hidden md:flex items-center gap-1.5 font-medium">
             <Lock className="w-3.5 h-3.5 text-[#9A8568]" />
-            <span></span>
+            <span>Razorpay Payment Protection</span>
           </div>
         </div>
       </div>
@@ -851,8 +852,9 @@ export const Checkout: React.FC<CheckoutProps> = ({ onNavigate }) => {
                   className="flex items-center justify-between text-xs"
                 >
                   <div className="flex items-center gap-2.5">
-                    <img
+                    <ImageWithFallback
                       src={i.image}
+                      productName={i.productName}
                       alt={i.productName}
                       className="w-10 h-12 object-cover rounded-xs bg-zinc-100"
                     />

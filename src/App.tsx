@@ -9,6 +9,7 @@ import { SearchModal } from './components/SearchModal';
 import { QuickViewModal } from './components/QuickViewModal';
 import { Home } from './pages/Home';
 import { Shop } from './pages/Shop';
+import { Collections } from './pages/Collections';
 import { ProductDetails } from './pages/ProductDetails';
 import { Checkout } from './pages/Checkout';
 import { Orders } from './pages/Orders';
@@ -24,44 +25,60 @@ import {
   subscribeSettings,
   seedInitialDatabaseIfEmpty,
   DEFAULT_SETTINGS,
+  ALL_SAMPLE_PRODUCTS,
+  SAMPLE_CATEGORIES,
 } from './firebase/db';
 import type { Product, Category, Review, BusinessSettings } from './types';
-import { MessageCircle } from 'lucide-react';
+import { MessageCircle, ChevronUp } from 'lucide-react';
 
 /**
- * Parses the current window location (pathname and hash) into an app route and param.
- * Supports /admin, /admin/, #admin, #/admin, /shop, etc.
+ * Parses the current window location (pathname, hash, and search query) into an app route and param.
+ * Preserves parameter casing and guarantees seamless routing in iframe and standard environments.
  */
 function getRouteFromLocation(): { route: string; param?: string } {
   try {
-    const rawPath = window.location.pathname.toLowerCase().replace(/\/+$/, '') || '/';
-    const rawHash = window.location.hash.toLowerCase().replace(/^#\/?/, '').replace(/\/+$/, '');
+    const rawPath = window.location.pathname.replace(/\/+$/, '') || '/';
+    const rawHash = window.location.hash.replace(/^#\/?/, '').replace(/\/+$/, '');
     const searchParams = new URLSearchParams(window.location.search);
 
     // Explicit check for /admin in path or hash
     if (
-      rawPath === '/admin' ||
-      rawPath.startsWith('/admin/') ||
-      rawHash === 'admin' ||
-      rawHash.startsWith('admin/')
+      rawPath.toLowerCase() === '/admin' ||
+      rawPath.toLowerCase().startsWith('/admin/') ||
+      rawHash.toLowerCase() === 'admin' ||
+      rawHash.toLowerCase().startsWith('admin/')
     ) {
       return { route: 'admin' };
     }
 
-    // Determine target from path or hash
-    const target = rawHash || rawPath.replace(/^\//, '');
+    // Determine target prioritizing hash if it contains a route, otherwise path
+    let target = '';
+    if (rawHash && rawHash !== '/' && rawHash !== 'home') {
+      target = rawHash;
+    } else {
+      target = rawPath.replace(/^\//, '');
+    }
+
     const segments = target.split('/').filter(Boolean);
-    const primary = segments[0] || 'home';
+    const primary = (segments[0] || 'home').toLowerCase();
+    // Keep secondary parameter intact with original case and decoded
     const secondary = segments[1] ? decodeURIComponent(segments[1]) : undefined;
 
     if (primary === 'admin') return { route: 'admin' };
     if (primary === 'product' || primary === 'product-details') {
-      return { route: 'product-details', param: secondary || searchParams.get('id') || undefined };
+      return {
+        route: 'product-details',
+        param: secondary || searchParams.get('id') || searchParams.get('slug') || undefined,
+      };
     }
     if (primary === 'shop') {
-      return { route: 'shop', param: secondary || searchParams.get('category') || undefined };
+      return {
+        route: 'shop',
+        param: secondary || searchParams.get('category') || undefined,
+      };
     }
     if (primary === 'new-arrivals') return { route: 'new-arrivals' };
+    if (primary === 'collections') return { route: 'collections' };
     if (primary === 'checkout') return { route: 'checkout' };
     if (primary === 'orders') return { route: 'orders' };
     if (primary === 'account') return { route: 'account' };
@@ -83,15 +100,37 @@ function MainApp() {
   const [currentRoute, setCurrentRoute] = useState<string>(initialLocation.route);
   const [routeParam, setRouteParam] = useState<string | undefined>(initialLocation.param);
 
-  // Firestore Realtime Collections State (Public Catalog Data Only)
-  const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
+  // Firestore Realtime Collections State (Initialized with full sample catalog to eliminate any disappearing product frames)
+  const [products, setProducts] = useState<Product[]>(() =>
+    ALL_SAMPLE_PRODUCTS.map((p, idx: number) => ({
+      id: `sample-${idx + 1}`,
+      ...p,
+      status: (p.status as Product['status']) || 'active',
+    }))
+  );
+  const [categories, setCategories] = useState<Category[]>(() =>
+    SAMPLE_CATEGORIES.map((c, idx: number) => ({
+      id: `cat-${idx + 1}`,
+      ...c,
+      active: true,
+    }))
+  );
   const [reviews, setReviews] = useState<Review[]>([]);
   const [settings, setSettings] = useState<BusinessSettings>(DEFAULT_SETTINGS);
 
   // Modals & Drawers
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null);
+  const [showScrollTop, setShowScrollTop] = useState(false);
+
+  // Monitor scroll for back to top button
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowScrollTop(window.scrollY > 400);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   // Subscriptions to Firestore Public Collections
   useEffect(() => {
@@ -130,22 +169,46 @@ function MainApp() {
   }, []);
 
   const handleNavigate = (route: string, param?: string) => {
+    // 1. Immediately update React state for instant, rock-solid response
     setCurrentRoute(route);
     setRouteParam(param);
 
-    // Sync browser URL bar so refreshing or bookmarking retains the route
+    // 2. Synchronize URL bar gracefully
     try {
+      const formattedParam = param ? encodeURIComponent(param) : '';
       let targetPath = route === 'home' ? '/' : `/${route}`;
       if (param && (route === 'product-details' || route === 'shop')) {
-        targetPath += `/${encodeURIComponent(param)}`;
+        targetPath += `/${formattedParam}`;
       }
-      if (window.location.pathname !== targetPath) {
+
+      // Format hash that preserves the parameter
+      const targetHash =
+        route === 'home'
+          ? ''
+          : param && (route === 'product-details' || route === 'shop')
+          ? `#/${route}/${formattedParam}`
+          : `#/${route}`;
+
+      // Update history if supported
+      if (window.history && window.history.pushState) {
         window.history.pushState({ route, param }, '', targetPath);
       }
+
+      // Sync hash if needed for iframe sandbox bookmarking/reload
+      if (window.location.hash !== targetHash) {
+        window.location.hash = targetHash;
+      }
     } catch {
-      // Fallback in restricted iframe environments
+      // Fallback in restricted iframe environments: always retain the parameter!
       try {
-        window.location.hash = route === 'home' ? '' : `#${route}`;
+        const formattedParam = param ? encodeURIComponent(param) : '';
+        const targetHash =
+          route === 'home'
+            ? ''
+            : param && (route === 'product-details' || route === 'shop')
+            ? `#/${route}/${formattedParam}`
+            : `#/${route}`;
+        window.location.hash = targetHash;
       } catch {}
     }
 
@@ -194,6 +257,24 @@ function MainApp() {
           />
         )}
 
+        {currentRoute === 'collections' && (
+          <Collections
+            categories={categories}
+            products={products}
+            onNavigate={handleNavigate}
+            onQuickView={(p) => setQuickViewProduct(p)}
+          />
+        )}
+
+        {currentRoute === 'sale' && (
+          <Shop
+            products={products.filter((p) => p.salePrice && p.salePrice < p.price)}
+            categories={categories}
+            onNavigate={handleNavigate}
+            onQuickView={(p) => setQuickViewProduct(p)}
+          />
+        )}
+
         {currentRoute === 'product-details' && (
           <ProductDetails
             slugOrId={routeParam || ''}
@@ -220,7 +301,7 @@ function MainApp() {
 
         {currentRoute === 'about' && <About settings={settings} onNavigate={handleNavigate} />}
 
-        {currentRoute === 'contact' && <Contact settings={settings} />}
+        {currentRoute === 'contact' && <Contact settings={settings} onNavigate={handleNavigate} />}
 
         {currentRoute === 'admin' && (
           <AdminDashboard
@@ -229,6 +310,18 @@ function MainApp() {
             reviews={reviews}
             settings={settings}
             onNavigate={handleNavigate}
+          />
+        )}
+
+        {/* Fallback route if route is unrecognized */}
+        {!['home', 'shop', 'new-arrivals', 'collections', 'sale', 'product-details', 'checkout', 'orders', 'account', 'wishlist', 'about', 'contact', 'admin'].includes(currentRoute) && (
+          <Home
+            products={products}
+            categories={categories}
+            settings={settings}
+            reviews={reviews}
+            onNavigate={handleNavigate}
+            onQuickView={(p) => setQuickViewProduct(p)}
           />
         )}
       </main>
@@ -254,7 +347,19 @@ function MainApp() {
         onNavigate={handleNavigate}
       />
 
-      {/* 7. Floating WhatsApp Concierge Button */}
+      {/* 7. Floating Back to Top Button */}
+      {showScrollTop && (
+        <button
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          className="fixed bottom-22 right-6 z-40 bg-white/95 hover:bg-[#292522] text-[#292522] hover:text-white border border-[#E9DFD0] p-3 rounded-full shadow-lg transition-all duration-300 hover:scale-110 flex items-center justify-center cursor-pointer animate-in fade-in"
+          title="Back to Top"
+          aria-label="Back to Top"
+        >
+          <ChevronUp className="w-5 h-5 text-[#9A8568]" />
+        </button>
+      )}
+
+      {/* 8. Floating WhatsApp Concierge Button */}
       {settings.whatsappEnabled && (
         <a
           href={`https://wa.me/${settings.whatsappNumber}?text=${encodeURIComponent(

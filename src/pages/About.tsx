@@ -1,5 +1,5 @@
 import React from 'react';
-import { MapPin, Phone, Mail, Sparkles, Heart, ShieldCheck } from 'lucide-react';
+import { MapPin, Phone, Mail, Sparkles, Heart, ShieldCheck, ChevronRight } from 'lucide-react';
 import type { BusinessSettings } from '../types';
 
 interface AboutProps {
@@ -9,7 +9,22 @@ interface AboutProps {
 
 export const About: React.FC<AboutProps> = ({ settings, onNavigate }) => {
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12 pb-24 space-y-16">
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 pb-24 space-y-12 sm:space-y-16 animate-in fade-in duration-300">
+      {/* Breadcrumb */}
+      <nav className="text-xs text-[#766F68] flex items-center gap-2 mb-2" aria-label="Breadcrumb">
+        <button
+          onClick={() => {
+            onNavigate('home');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          className="hover:text-[#292522] transition-colors cursor-pointer"
+        >
+          Home
+        </button>
+        <ChevronRight className="w-3.5 h-3.5 text-[#9A8568]" />
+        <span className="text-[#292522] font-semibold">Our Boutique Story</span>
+      </nav>
+
       {/* Header */}
       <div className="text-center space-y-4">
         <span className="text-xs uppercase tracking-widest text-[#9A8568] font-semibold">

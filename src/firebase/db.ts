@@ -81,6 +81,8 @@ export const DEFAULT_SETTINGS: BusinessSettings = {
 };
 
 import { SAMPLE_CATEGORIES, ALL_SAMPLE_PRODUCTS } from '../data/allSampleProducts';
+import { RESTORED_MOBILE_IMAGES_MAP } from '../data/restoredMobileImages';
+export { SAMPLE_CATEGORIES, ALL_SAMPLE_PRODUCTS, RESTORED_MOBILE_IMAGES_MAP };
 
 // 5 Sample Categories and 75 Products (15 in each category)
 export const INITIAL_CATEGORIES: Omit<Category, 'id'>[] = SAMPLE_CATEGORIES;
@@ -258,17 +260,68 @@ export function subscribeProducts(callback: (products: Product[]) => void) {
     (snap) => {
       const items: Product[] = [];
       snap.forEach((d) => {
-        items.push({ id: d.id, ...(d.data() as Omit<Product, 'id'>) });
+        const data = d.data() as Omit<Product, 'id'>;
+        items.push({
+          id: d.id,
+          ...data,
+          status: data.status || 'active',
+        });
       });
-      if (items.length === 0) {
-        callback(ALL_SAMPLE_PRODUCTS.map((p, idx) => ({ id: `sample-${idx + 1}`, ...p })));
-      } else {
-        callback(items);
-      }
+
+      // Mobile Upload Priority Sorting:
+      // When multiple copies of a document exist in Firestore, prioritize the document
+      // that contains the user's mobile uploaded images (data: or /uploads/) or has newer edits.
+      const sortedItems = [...items].sort((a, b) => {
+        const aHasMobile = (a.images || []).some((img) => img && (img.startsWith('data:') || img.startsWith('/uploads/')));
+        const bHasMobile = (b.images || []).some((img) => img && (img.startsWith('data:') || img.startsWith('/uploads/')));
+        if (aHasMobile && !bHasMobile) return -1;
+        if (!aHasMobile && bHasMobile) return 1;
+        return (b.updatedAt || '').localeCompare(a.updatedAt || '');
+      });
+
+      const uniqueMap = new Map<string, Product>();
+      sortedItems.forEach((item) => {
+        const key = item.slug || item.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+        if (!uniqueMap.has(key)) {
+          // If Firestore item only has generic Unsplash images, attach restored mobile images if available
+          const itemHasMobile = (item.images || []).some((img) => img && (img.startsWith('data:') || img.startsWith('/uploads/')));
+          const restored = RESTORED_MOBILE_IMAGES_MAP[key];
+          if (!itemHasMobile && restored && restored.images && restored.images.length > 0) {
+            uniqueMap.set(key, {
+              ...item,
+              images: restored.images,
+              thumbnail: restored.thumbnail || restored.images[0],
+            });
+          } else {
+            uniqueMap.set(key, item);
+          }
+        }
+      });
+
+      // Merge any missing sample items if Firestore is missing any silhouette
+      ALL_SAMPLE_PRODUCTS.forEach((sample, idx) => {
+        const key = sample.slug || sample.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+        if (!uniqueMap.has(key)) {
+          uniqueMap.set(key, {
+            id: `sample-fb-${idx + 1}`,
+            ...sample,
+            status: sample.status || 'active',
+          });
+        }
+      });
+
+      const fullCatalog = Array.from(uniqueMap.values());
+      callback(fullCatalog);
     },
     (err) => {
-      console.warn('Products listener error:', err);
-      callback(ALL_SAMPLE_PRODUCTS.map((p, idx) => ({ id: `sample-${idx + 1}`, ...p })));
+      console.warn('Products listener error (using resilient fallback catalog):', err);
+      callback(
+        ALL_SAMPLE_PRODUCTS.map((p, idx) => ({
+          id: `sample-${idx + 1}`,
+          ...p,
+          status: p.status || 'active',
+        }))
+      );
     }
   );
 }
@@ -340,14 +393,17 @@ export function subscribeCategories(callback: (categories: Category[]) => void) 
         }
       }
 
+      // Guarantee all 5 core boutique categories exist without vanishing
+      for (const sampleCat of SAMPLE_CATEGORIES) {
+        const key = getNormalizedCategoryKey(sampleCat);
+        if (!uniqueMap.has(key)) {
+          uniqueMap.set(key, { id: `sample-${sampleCat.slug}`, ...sampleCat });
+        }
+      }
+
       const deduplicated = Array.from(uniqueMap.values());
       deduplicated.sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
-
-      if (deduplicated.length === 0) {
-        callback(SAMPLE_CATEGORIES.map((c, idx) => ({ id: `cat-${idx + 1}`, ...c })));
-      } else {
-        callback(deduplicated);
-      }
+      callback(deduplicated);
     },
     (err) => {
       console.warn('Categories listener error:', err);

@@ -52,7 +52,6 @@ export const Header: React.FC<HeaderProps> = ({
     { label: 'Shop', route: 'shop' },
     { label: 'New Arrivals', route: 'new-arrivals' },
     { label: 'Collections', route: 'collections' },
-    { label: 'Sale', route: 'sale' },
     { label: 'About', route: 'about' },
     { label: 'Contact', route: 'contact' },
   ];

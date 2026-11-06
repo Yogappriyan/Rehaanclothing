@@ -1,5 +1,5 @@
 import React from 'react';
-import { Heart, Trash2, ShoppingBag } from 'lucide-react';
+import { Heart, Trash2, ShoppingBag, ChevronRight } from 'lucide-react';
 import { useWishlist } from '../context/WishlistContext';
 import { ProductCard } from '../components/ProductCard';
 import type { Product } from '../types';
@@ -20,7 +20,22 @@ export const WishlistPage: React.FC<WishlistPageProps> = ({
   const wishlistedProducts = products.filter((p) => wishlist.includes(p.id));
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 pb-20">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 pb-20 animate-in fade-in duration-300">
+      {/* Breadcrumb Navigation */}
+      <nav className="text-xs text-[#766F68] flex items-center gap-2 mb-6" aria-label="Breadcrumb">
+        <button
+          onClick={() => {
+            onNavigate('home');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          className="hover:text-[#292522] transition-colors cursor-pointer"
+        >
+          Home
+        </button>
+        <ChevronRight className="w-3.5 h-3.5 text-[#9A8568]" />
+        <span className="text-[#292522] font-semibold">Wishlist</span>
+      </nav>
+
       <div className="flex items-center justify-between pb-6 border-b border-[#E9DFD0] mb-8">
         <div>
           <span className="text-xs uppercase tracking-widest text-[#9A8568] font-semibold">

@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Search, X, ArrowRight } from 'lucide-react';
+import { ImageWithFallback } from './ImageWithFallback';
 import type { Product } from '../types';
 
 interface SearchModalProps {
@@ -114,8 +115,11 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                   }}
                   className="group flex gap-3.5 p-3 rounded-md border border-[#E9DFD0]/80 bg-white hover:border-[#9A8568] transition-all cursor-pointer shadow-2xs"
                 >
-                  <img
+                  <ImageWithFallback
                     src={item.images?.[0] || item.thumbnail}
+                    fallbackSrc={item.thumbnail}
+                    category={item.category}
+                    productName={item.name}
                     alt={item.name}
                     className="w-16 h-20 object-cover rounded-xs bg-[#F4EFE6] shrink-0"
                   />

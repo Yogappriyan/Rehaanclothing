@@ -3,6 +3,7 @@ import { X, Heart, ShoppingBag, ArrowRight, Check, Ruler } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
 import { SizeGuideModal } from './SizeGuideModal';
+import { ImageWithFallback } from './ImageWithFallback';
 import type { Product, ProductSize } from '../types';
 
 interface QuickViewModalProps {
@@ -75,8 +76,11 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({
 
         {/* Product Image Gallery Preview */}
         <div className="relative aspect-3/4 md:aspect-auto h-72 md:h-full bg-[#F4EFE6] overflow-hidden">
-          <img
+          <ImageWithFallback
             src={product.images?.[0] || product.thumbnail}
+            fallbackSrc={product.thumbnail}
+            category={product.category}
+            productName={product.name}
             alt={product.name}
             className="w-full h-full object-cover object-center"
           />

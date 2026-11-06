@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
-import { MapPin, Phone, Mail, MessageCircle, Send, CheckCircle2 } from 'lucide-react';
+import { MapPin, Phone, Mail, MessageCircle, Send, CheckCircle2, ChevronRight, AlertCircle } from 'lucide-react';
 import { submitContactMessage } from '../firebase/db';
 import type { BusinessSettings } from '../types';
 
 interface ContactProps {
   settings: BusinessSettings;
+  onNavigate?: (route: string) => void;
 }
 
-export const Contact: React.FC<ContactProps> = ({ settings }) => {
+export const Contact: React.FC<ContactProps> = ({ settings, onNavigate }) => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -15,12 +16,14 @@ export const Contact: React.FC<ContactProps> = ({ settings }) => {
   const [message, setMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [sent, setSent] = useState(false);
+  const [submitError, setSubmitError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !email || !message) return;
 
     setSubmitting(true);
+    setSubmitError('');
     try {
       await submitContactMessage({
         name,
@@ -37,14 +40,37 @@ export const Contact: React.FC<ContactProps> = ({ settings }) => {
       setMessage('');
     } catch (err) {
       console.error(err);
-      alert('Could not submit message. Please contact us directly via WhatsApp.');
+      setSubmitError('Could not send message. Please reach us directly via WhatsApp or phone.');
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 pb-24 space-y-12">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 pb-24 space-y-10 animate-in fade-in duration-300">
+      {/* Breadcrumb Navigation */}
+      {onNavigate && (
+        <nav className="text-xs text-[#766F68] flex items-center gap-2 mb-2" aria-label="Breadcrumb">
+          <button
+            onClick={() => {
+              onNavigate('home');
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            className="hover:text-[#292522] transition-colors cursor-pointer"
+          >
+            Home
+          </button>
+          <ChevronRight className="w-3.5 h-3.5 text-[#9A8568]" />
+          <span className="text-[#292522] font-semibold">Contact & Boutique Visits</span>
+        </nav>
+      )}
+
+      {submitError && (
+        <div className="p-4 bg-rose-50 border border-rose-200 rounded-sm text-xs text-rose-700 flex items-center gap-2.5">
+          <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
+          <span>{submitError}</span>
+        </div>
+      )}
       <div className="text-center space-y-3">
         <span className="text-xs uppercase tracking-widest text-[#9A8568] font-semibold">
           Get in Touch

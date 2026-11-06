@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ArrowRight, Sparkles, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ImageWithFallback } from './ImageWithFallback';
 import type { BusinessSettings } from '../types';
 
 interface HeroCarouselProps {
@@ -153,8 +154,9 @@ export const HeroCarousel: React.FC<HeroCarouselProps> = ({ settings, onNavigate
                 isActive ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'
               }`}
             >
-              <img
+              <ImageWithFallback
                 src={slide.image}
+                fallbackSrc="/hero-banner.jpg"
                 alt={slide.title}
                 className={`w-full h-full object-cover object-center transform transition-transform duration-7000 ease-out ${
                   isActive ? 'scale-105' : 'scale-100'
