@@ -48,6 +48,8 @@ import {
   seedFullSampleCatalog,
 } from '../firebase/db';
 import { DeviceImageUploader } from '../components/DeviceImageUploader';
+import { ImageWithFallback } from '../components/ImageWithFallback';
+import { RESTORED_MOBILE_IMAGES_MAP } from '../data/restoredMobileImages';
 import { useAuth } from '../context/AuthContext';
 import { maskPhone, maskEmail, maskAddress } from '../utils/security';
 import type {
@@ -85,7 +87,34 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [authError, setAuthError] = useState('');
   const [passcode, setPasscode] = useState('');
   const [showPasscode, setShowPasscode] = useState(false);
+  const [previewOrderImage, setPreviewOrderImage] = useState<{ url: string; title: string } | null>(null);
   const [dashboardNotice, setDashboardNotice] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  /**
+   * Resolves the highest-fidelity image for an order item, checking item data,
+   * live product catalog (by ID, slug, or title), and restored mobile uploads.
+   */
+  const getOrderItemImage = (item: Order['items'][number]): string => {
+    if (item.image && item.image.trim()) return item.image;
+    const match = products.find(
+      (p) =>
+        p.id === item.productId ||
+        p.slug === item.productId ||
+        p.name.trim().toLowerCase() === item.productName.trim().toLowerCase()
+    );
+    if (match?.thumbnail) return match.thumbnail;
+    if (match?.images?.[0]) return match.images[0];
+
+    for (const [key, val] of Object.entries(RESTORED_MOBILE_IMAGES_MAP)) {
+      if (
+        item.productId === key ||
+        item.productName.toLowerCase().includes(val.name.toLowerCase().slice(0, 15))
+      ) {
+        return val.thumbnail || val.images[0];
+      }
+    }
+    return '/placeholder-dress.jpg';
+  };
 
   const showNotice = (type: 'success' | 'error', message: string) => {
     setDashboardNotice({ type, message });
@@ -1028,20 +1057,77 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     </div>
 
                     <div>
-                      <strong className="text-[#292522] block font-semibold mb-1">
-                        Purchased Items:
+                      <strong className="text-[#292522] block font-semibold mb-2">
+                        Purchased Items ({order.items?.length || 0}):
                       </strong>
-                      <div className="space-y-1">
-                        {order.items?.map((item, idx) => (
-                          <div key={idx} className="flex justify-between">
-                            <span className="truncate max-w-[180px]">
-                              {item.quantity}x {item.productName} ({item.size})
-                            </span>
-                            <span className="font-medium text-[#292522]">
-                              ₹{(item.price * item.quantity).toLocaleString('en-IN')}
-                            </span>
-                          </div>
-                        ))}
+                      <div className="space-y-2.5">
+                        {order.items?.map((item, idx) => {
+                          const itemImg = getOrderItemImage(item);
+                          return (
+                            <div
+                              key={idx}
+                              className="flex items-center gap-2.5 p-2 bg-[#FAF8F4] rounded-xs border border-[#E9DFD0] hover:border-[#9A8568]/50 transition-colors"
+                            >
+                              {/* Product Thumbnail with Click to Zoom */}
+                              <div
+                                className="relative shrink-0 w-12 h-14 rounded-xs overflow-hidden border border-[#E9DFD0] bg-white group cursor-pointer"
+                                onClick={() =>
+                                  setPreviewOrderImage({
+                                    url: itemImg,
+                                    title: item.productName,
+                                  })
+                                }
+                                title="Click to enlarge garment image"
+                              >
+                                <ImageWithFallback
+                                  src={itemImg}
+                                  alt={item.productName}
+                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                                />
+                                <div className="absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                  <Eye className="w-3.5 h-3.5 text-white" />
+                                </div>
+                              </div>
+
+                              {/* Item Details */}
+                              <div className="flex-1 min-w-0">
+                                <button
+                                  type="button"
+                                  onClick={() => onNavigate('product-details', item.productId)}
+                                  className="font-medium text-[#292522] hover:text-[#9A8568] hover:underline text-left text-xs truncate block w-full cursor-pointer"
+                                  title={`View ${item.productName} details`}
+                                >
+                                  {item.productName}
+                                </button>
+                                <div className="flex flex-wrap items-center gap-1.5 mt-0.5 text-[11px] text-[#766F68]">
+                                  {item.size && (
+                                    <span className="bg-white px-1.5 py-0.5 rounded-xs border border-[#E9DFD0] font-semibold text-[#292522]">
+                                      Size: {item.size}
+                                    </span>
+                                  )}
+                                  {item.color && (
+                                    <span className="bg-white px-1.5 py-0.5 rounded-xs border border-[#E9DFD0]">
+                                      {item.color}
+                                    </span>
+                                  )}
+                                  <span className="font-medium text-[#292522]">Qty: {item.quantity}</span>
+                                </div>
+                              </div>
+
+                              {/* Price */}
+                              <div className="text-right shrink-0">
+                                <span className="font-semibold text-[#292522] block text-xs">
+                                  ₹{(item.price * item.quantity).toLocaleString('en-IN')}
+                                </span>
+                                {item.quantity > 1 && (
+                                  <span className="text-[10px] text-[#8E877F] block">
+                                    ₹{item.price.toLocaleString('en-IN')} ea
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
 
@@ -2125,6 +2211,53 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Admin Order Item Garment Photo Preview Modal */}
+      {previewOrderImage && (
+        <div
+          className="fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in"
+          onClick={() => setPreviewOrderImage(null)}
+        >
+          <div
+            className="bg-white rounded-xs max-w-lg w-full overflow-hidden shadow-2xl border border-[#E9DFD0]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between p-3.5 border-b border-[#E9DFD0] bg-[#FAF8F4]">
+              <div className="flex items-center gap-2 truncate pr-4">
+                <ImageIcon className="w-4 h-4 text-[#9A8568] shrink-0" />
+                <h3 className="font-serif text-sm font-semibold text-[#292522] truncate">
+                  {previewOrderImage.title}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPreviewOrderImage(null)}
+                className="p-1 rounded-xs hover:bg-[#E9DFD0] text-[#766F68] hover:text-[#292522] cursor-pointer transition-colors"
+                aria-label="Close Preview"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-4 flex items-center justify-center bg-[#FAF8F4]/50 max-h-[75vh]">
+              <ImageWithFallback
+                src={previewOrderImage.url}
+                alt={previewOrderImage.title}
+                className="max-h-[68vh] w-auto max-w-full object-contain rounded-xs shadow-md border border-[#E9DFD0]"
+              />
+            </div>
+            <div className="p-3 bg-white border-t border-[#E9DFD0] flex items-center justify-between">
+              <span className="text-[11px] text-[#766F68]">Boutique Order Image Preview</span>
+              <button
+                type="button"
+                onClick={() => setPreviewOrderImage(null)}
+                className="px-4 py-1.5 text-xs font-semibold bg-[#292522] text-white hover:bg-[#9A8568] transition-colors rounded-xs cursor-pointer"
+              >
+                Done
+              </button>
+            </div>
           </div>
         </div>
       )}

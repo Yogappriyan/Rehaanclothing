@@ -65,14 +65,52 @@ export const Shop: React.FC<ShopProps> = ({
       .filter((p) => {
         if (p.status === 'archived' || p.status === 'draft') return false;
 
-        // Category matching by exact name or slug/normalized format
+        // Robust Category matching supporting aliases (Western Wear, Ethnic Wear, Sale, etc.)
         if (selectedCategory !== 'All') {
-          const matchName = p.category.toLowerCase() === selectedCategory.toLowerCase();
-          const targetSlug = selectedCategory.toLowerCase().replace(/ & /g, '-').replace(/\s+/g, '-');
-          const productCatSlug = p.category.toLowerCase().replace(/ & /g, '-').replace(/\s+/g, '-');
-          const matchSlug = productCatSlug === targetSlug || productCatSlug.includes(targetSlug) || targetSlug.includes(productCatSlug);
-          if (!matchName && !matchSlug) {
-            return false;
+          const sel = selectedCategory.toLowerCase().trim();
+          if (sel === 'sale' || sel === 'sale-offers' || sel === 'sale & offers' || sel === 'offers') {
+            const hasDiscount = Boolean(
+              p.sale ||
+              (p.salePrice && p.salePrice < p.price) ||
+              (p.discountPercentage && p.discountPercentage > 0)
+            );
+            if (!hasDiscount) return false;
+          } else {
+            const cat = p.category.toLowerCase().trim();
+            const selClean = sel.replace(/-/g, ' ');
+            const isWesternMatch = selClean.includes('western') && cat.includes('western');
+            const isSareeMatch = selClean.includes('saree') && cat.includes('saree');
+            const isKurtiMatch =
+              (selClean.includes('kurti') || selClean.includes('tunic')) &&
+              (cat.includes('kurti') || cat.includes('tunic'));
+            const isDressMatch = selClean.includes('dress') && cat.includes('dress');
+            const isCoordMatch =
+              (selClean.includes('co-ord') || selClean.includes('coord')) &&
+              (cat.includes('co-ord') || cat.includes('coord'));
+            const isEthnicMatch =
+              selClean.includes('ethnic') &&
+              (cat.includes('saree') || cat.includes('kurti') || cat.includes('ethnic') || cat.includes('chanderi'));
+
+            const matchName = cat === sel || cat.includes(sel) || sel.includes(cat);
+            const targetSlug = sel.replace(/ & /g, '-').replace(/\s+/g, '-');
+            const productCatSlug = cat.replace(/ & /g, '-').replace(/\s+/g, '-');
+            const matchSlug =
+              productCatSlug === targetSlug ||
+              productCatSlug.includes(targetSlug) ||
+              targetSlug.includes(productCatSlug);
+
+            if (
+              !matchName &&
+              !matchSlug &&
+              !isWesternMatch &&
+              !isSareeMatch &&
+              !isKurtiMatch &&
+              !isDressMatch &&
+              !isCoordMatch &&
+              !isEthnicMatch
+            ) {
+              return false;
+            }
           }
         }
 

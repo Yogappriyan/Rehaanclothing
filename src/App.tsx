@@ -18,6 +18,7 @@ import { WishlistPage } from './pages/WishlistPage';
 import { About } from './pages/About';
 import { Contact } from './pages/Contact';
 import { AdminDashboard } from './pages/AdminDashboard';
+import { MobileBottomNav } from './components/MobileBottomNav';
 import {
   subscribeProducts,
   subscribeCategories,
@@ -78,7 +79,8 @@ function getRouteFromLocation(): { route: string; param?: string } {
       };
     }
     if (primary === 'new-arrivals') return { route: 'new-arrivals' };
-    if (primary === 'collections') return { route: 'collections' };
+    if (primary === 'collections' || primary === 'lookbook') return { route: 'collections' };
+    if (primary === 'sale') return { route: 'sale' };
     if (primary === 'checkout') return { route: 'checkout' };
     if (primary === 'orders') return { route: 'orders' };
     if (primary === 'account') return { route: 'account' };
@@ -226,7 +228,7 @@ function MainApp() {
       />
 
       {/* 2. Main Viewport Router */}
-      <main className="flex-1">
+      <main className="flex-1 pb-20 lg:pb-0">
         {currentRoute === 'home' && (
           <Home
             products={products}
@@ -347,11 +349,11 @@ function MainApp() {
         onNavigate={handleNavigate}
       />
 
-      {/* 7. Floating Back to Top Button */}
+      {/* 7. Floating Back to Top Button (repositioned above mobile nav) */}
       {showScrollTop && (
         <button
           onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-          className="fixed bottom-22 right-6 z-40 bg-white/95 hover:bg-[#292522] text-[#292522] hover:text-white border border-[#E9DFD0] p-3 rounded-full shadow-lg transition-all duration-300 hover:scale-110 flex items-center justify-center cursor-pointer animate-in fade-in"
+          className="fixed bottom-36 lg:bottom-22 right-4 sm:right-6 z-40 bg-white/95 hover:bg-[#292522] text-[#292522] hover:text-white border border-[#E9DFD0] p-3 rounded-full shadow-lg transition-all duration-300 hover:scale-110 flex items-center justify-center cursor-pointer animate-in fade-in"
           title="Back to Top"
           aria-label="Back to Top"
         >
@@ -359,7 +361,7 @@ function MainApp() {
         </button>
       )}
 
-      {/* 8. Floating WhatsApp Concierge Button */}
+      {/* 8. Floating WhatsApp Concierge Button (repositioned above mobile nav) */}
       {settings.whatsappEnabled && (
         <a
           href={`https://wa.me/${settings.whatsappNumber}?text=${encodeURIComponent(
@@ -367,13 +369,16 @@ function MainApp() {
           )}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="fixed bottom-6 right-6 z-40 bg-[#25D366] hover:bg-[#20ba59] text-white p-3.5 rounded-full shadow-lg transition-transform hover:scale-110 flex items-center justify-center cursor-pointer"
+          className="fixed bottom-20 lg:bottom-6 right-4 sm:right-6 z-40 bg-[#25D366] hover:bg-[#20ba59] text-white p-3.5 rounded-full shadow-lg transition-transform hover:scale-110 flex items-center justify-center cursor-pointer"
           title="Chat with House Of Rehaan Boutique Trichy"
           aria-label="WhatsApp Chat"
         >
           <MessageCircle className="w-6 h-6" />
         </a>
       )}
+
+      {/* 9. Mobile and Tablet Fixed Bottom Navigation Bar (Visible only on mobile/tablet) */}
+      <MobileBottomNav currentRoute={currentRoute} onNavigate={handleNavigate} />
     </div>
   );
 }

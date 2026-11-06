@@ -54,7 +54,7 @@ export const HeroCarousel: React.FC<HeroCarouselProps> = ({ settings, onNavigate
       primaryCtaRoute: 'shop',
       primaryCtaParam: 'Festive',
       secondaryCtaText: 'View Lookbook',
-      secondaryCtaRoute: 'lookbook',
+      secondaryCtaRoute: 'collections',
       image:
         'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=1800&q=85',
     },

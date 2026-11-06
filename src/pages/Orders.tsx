@@ -16,6 +16,7 @@ import {
 import { subscribeUserOrders, trackSingleOrder, subscribeSingleOrder } from '../firebase/db';
 import { useAuth } from '../context/AuthContext';
 import { maskPhone, maskEmail, maskAddress } from '../utils/security';
+import { ImageWithFallback } from '../components/ImageWithFallback';
 import type { Order, OrderStatus } from '../types';
 
 interface OrdersProps {
@@ -314,10 +315,10 @@ export const Orders: React.FC<OrdersProps> = ({ onNavigate }) => {
                         className="flex items-center justify-between p-3 border border-zinc-100 rounded-xs bg-[#FAF8F4]"
                       >
                         <div className="flex items-center gap-3">
-                          <img
+                          <ImageWithFallback
                             src={item.image}
-                            alt=""
-                            className="w-12 h-14 object-cover rounded-xs bg-zinc-200"
+                            alt={item.productName}
+                            className="w-12 h-14 object-cover rounded-xs border border-[#E9DFD0]"
                           />
                           <div>
                             <h5 className="font-editorial text-sm font-medium text-[#292522]">
@@ -578,10 +579,10 @@ export const Orders: React.FC<OrdersProps> = ({ onNavigate }) => {
                             className="flex items-center justify-between p-3 border border-zinc-100 rounded-xs bg-[#FAF8F4]"
                           >
                             <div className="flex items-center gap-3">
-                              <img
+                              <ImageWithFallback
                                 src={item.image}
-                                alt=""
-                                className="w-12 h-14 object-cover rounded-xs bg-zinc-200"
+                                alt={item.productName}
+                                className="w-12 h-14 object-cover rounded-xs border border-[#E9DFD0]"
                               />
                               <div>
                                 <h5 className="font-editorial text-sm font-medium text-[#292522]">
